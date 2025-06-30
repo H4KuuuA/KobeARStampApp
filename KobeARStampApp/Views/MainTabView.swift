@@ -8,8 +8,33 @@
 import SwiftUI
 
 struct MainTabView: View {
+    @State private var selectedTabIndex = 0
+    
     var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
+        ZStack {
+            TabView(selection: $selectedTabIndex) {
+                Text("HomeView()")
+                    .tag(0)
+                    .tabItem {
+                        Image(systemName: "house")
+                        Text("ホーム")
+                    }
+                // ダミータブ
+                Color.clear
+                    .tag(1)
+                    .tabItem {
+                        // タブアイコンは空にする
+                        EmptyView()
+                    }
+                Text("StampView()")
+                    .tag(2)
+                    .tabItem {
+                        Image(systemName: "menucard")
+                        Text("スタンプカード")
+                    }
+            }
+            .tint(.primary)
+        }
     }
 }
 
