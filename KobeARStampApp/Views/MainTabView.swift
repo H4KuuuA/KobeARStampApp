@@ -86,7 +86,7 @@ struct MainTabView: View {
                                 // タップ完了後の処理はここで実行してもOK
                             }
                     )
-                    .shadow(color: Color.black.opacity(0.2), radius: 4, x: 0, y: 2)
+                    .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 2)
                     
                     Spacer()
                 }
