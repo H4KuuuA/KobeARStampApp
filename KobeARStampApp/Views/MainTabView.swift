@@ -19,7 +19,12 @@ struct MainTabView: View {
         ZStack {
             VStack(spacing: 0) {
                 TabView(selection: $activeTab) {
+                    // ここにそれぞれのTabViewを表示
+                    Text("Home")
+                        .setUpTab(.home)
                     
+                    Text("Stamp")
+                        .setUpTab(.stamp)
                 }
                 CustomTabBar()
             }
@@ -113,4 +118,14 @@ struct MainTabView: View {
 
 #Preview {
     MainTabView()
+}
+/// カスタムタブビュー用に、タグ設定・全画面表示・標準タブバー非表示をまとめて適用
+extension View {
+    @ViewBuilder
+    func setUpTab(_ tab: TabModel) -> some View {
+        self
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .tag(tab)
+            .toolbar(.hidden, for: .tabBar)
+    }
 }
