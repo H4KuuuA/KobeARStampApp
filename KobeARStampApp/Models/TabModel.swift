@@ -20,3 +20,10 @@ enum TabModel: String, CaseIterable {
         }
     }
 }
+
+/// animated SF Tab Model
+struct AnimatedTabModel: Identifiable {
+    var id: UUID = .init()
+    var tab: TabModel
+    var isAnimated: Bool?
+}
