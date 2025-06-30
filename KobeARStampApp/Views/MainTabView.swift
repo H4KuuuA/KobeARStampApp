@@ -97,13 +97,17 @@ struct MainTabView: View {
                         .font(.caption)
                         .textScale(.secondary)
                 }
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, 15)
-                            .padding(.bottom, 10)
-                            .contentShape(.rect)
-                                   
+                .frame(maxWidth: .infinity)
+                .foregroundStyle(activeTab == tab ? Color.primary : Color .gray.opacity(0.8))
+                .padding(.top, 15)
+                .padding(.bottom, 10)
+                .contentShape(.rect)
+                .onTapGesture {
+                    activeTab = tab
+                }
             }
         }
+        .background(.bar)
     }
 }
 
