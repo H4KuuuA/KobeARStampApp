@@ -98,6 +98,7 @@ struct MainTabView: View {
                 VStack(spacing: 4) {
                     Image(systemName: tab.rawValue)
                         .font(.title2)
+                        .symbolEffect(.bounce.down.byLayer, value: animatedTab.isAnimating)
                     Text(tab.title)
                         .font(.caption)
                         .textScale(.secondary)
@@ -108,7 +109,16 @@ struct MainTabView: View {
                 .padding(.bottom, 10)
                 .contentShape(.rect)
                 .onTapGesture {
-                    activeTab = tab
+                    withAnimation(.bouncy, completionCriteria :.logicallyComplete, {
+                        activeTab = tab
+                        animatedTab.isAnimating = true
+                    }, completion: {
+                        var transction = Transaction()
+                        transction.disablesAnimations = true
+                        withTransaction(transction) {
+                            animatedTab.isAnimating = nil
+                        }
+                    })
                 }
             }
         }

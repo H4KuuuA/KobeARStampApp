@@ -25,5 +25,5 @@ enum TabModel: String, CaseIterable {
 struct AnimatedTabModel: Identifiable {
     var id: UUID = .init()
     var tab: TabModel
-    var isAnimated: Bool?
+    var isAnimating: Bool?
 }
