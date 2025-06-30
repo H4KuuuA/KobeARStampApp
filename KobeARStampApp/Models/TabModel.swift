@@ -8,15 +8,15 @@
 import Foundation
 
 enum TabModel: String, CaseIterable {
-    case home = "house"
-    case stamp = "menucard"
+    case home = "house.fill"
+    case stamp = "menucard.fill"
     
     var title: String {
         switch self {
         case .home:
             return "ホーム"
         case .stamp:
-            return "スタンプ"
+            return "スタンプカード"
         }
     }
 }

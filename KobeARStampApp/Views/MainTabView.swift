@@ -83,7 +83,6 @@ struct MainTabView: View {
                     
                     Spacer()
                 }
-                .padding(.bottom,6)
             }
         }
     }
@@ -122,7 +121,8 @@ struct MainTabView: View {
                 }
             }
         }
-        .background(.bar)
+        .frame(height: 48)
+        .background(.regularMaterial)
     }
 }
 
