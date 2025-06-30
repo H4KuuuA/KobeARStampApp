@@ -21,6 +21,7 @@ struct MainTabView: View {
                 TabView(selection: $activeTab) {
                     
                 }
+                CustomTabBar()
             }
             
             VStack {
@@ -78,6 +79,29 @@ struct MainTabView: View {
                     Spacer()
                 }
                 .padding(.bottom,6)
+            }
+        }
+    }
+    
+    /// Custom Tab Bar
+    @ViewBuilder
+    func CustomTabBar() -> some View {
+        HStack(spacing: 60) {
+            ForEach($allTabs) { $animatedTab in
+                let tab = animatedTab.tab
+                
+                VStack(spacing: 4) {
+                    Image(systemName: tab.rawValue)
+                        .font(.title2)
+                    Text(tab.title)
+                        .font(.caption)
+                        .textScale(.secondary)
+                }
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 15)
+                            .padding(.bottom, 10)
+                            .contentShape(.rect)
+                                   
             }
         }
     }
