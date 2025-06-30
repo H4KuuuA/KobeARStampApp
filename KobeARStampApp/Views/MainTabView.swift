@@ -69,7 +69,7 @@ struct MainTabView: View {
                             }
                         }
                         .scaleEffect(isPressed ? 0.92 : 1.0) // 小さくして戻す
-                        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isPressed)
+                        .animation(.spring(response: 0.5, dampingFraction: 0.6), value: isPressed)
                     }
                     .simultaneousGesture(
                         DragGesture(minimumDistance: 0)
