@@ -119,8 +119,9 @@ struct MainTabView: View {
 #Preview {
     MainTabView()
 }
-/// カスタムタブビュー用に、タグ設定・全画面表示・標準タブバー非表示をまとめて適用
+
 extension View {
+    /// カスタムタブビュー用に、タグ設定・全画面表示・標準タブバー非表示をまとめて適用
     @ViewBuilder
     func setUpTab(_ tab: TabModel) -> some View {
         self
