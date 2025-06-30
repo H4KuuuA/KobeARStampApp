@@ -34,6 +34,26 @@ struct MainTabView: View {
                     }
             }
             .tint(.primary)
+            
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    
+                    Button(action:{
+                        // カメラ起動
+                    }) {
+                        Image(systemName: "camera.circle.fill")
+                            .resizable()
+                            .frame(width: 64, height: 64)
+                            .foregroundColor(.accentColor)
+                            .shadow(radius: 4)
+                    }
+                    
+                    Spacer()
+                }
+                .padding(.bottom,8)
+            }
         }
     }
 }
