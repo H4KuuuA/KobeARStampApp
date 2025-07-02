@@ -14,6 +14,7 @@ struct MainTabView: View {
     @State private var allTabs: [AnimatedTabModel] = TabModel.allCases.compactMap { tab -> AnimatedTabModel? in
         return .init(tab: tab)
     }
+    @State private var showSheet : Bool = false
     
     var body: some View {
         ZStack {
@@ -45,6 +46,19 @@ struct MainTabView: View {
                 }
             }
             .ignoresSafeArea()
+        }
+        .task {
+            showSheet = true
+        }
+        .sheet(isPresented: $showSheet) {
+            VStack(alignment: .leading, spacing: 10, content: {
+            })
+            .padding()
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .presentationDetents([.height(80), .medium, .large])
+            .presentationCornerRadius(20)
+            .presentationBackground(.thinMaterial)
+            .presentationBackgroundInteraction(.enabled(upThrough:  .large))
         }
     }
     
