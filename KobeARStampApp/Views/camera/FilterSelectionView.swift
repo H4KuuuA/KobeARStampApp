@@ -9,30 +9,32 @@
 import SwiftUI
 
 struct FilterSelectionView: View {
-    var originalImage: UIImage
+    let originalImage: UIImage
     @Binding var selectedFilter: String
     @Binding var filteredImage: UIImage
 
-    let filterList = ARSnapshotManager.availableFilters()
+    // 使用可能なフィルター一覧
+    let filterList = [
+        "Normal",
+        "CIPhotoEffectNoir",
+        "CIPhotoEffectChrome",
+        "CIPhotoEffectInstant",
+        "CIPhotoEffectProcess",
+        "CIPhotoEffectTransfer",
+        "CISepiaTone"
+    ]
 
     var body: some View {
-        VStack {
-            Text("フィルターを選択").font(.headline)
+        VStack(spacing: 12) {
+            Text("フィルターを選択")
+                .font(.headline)
+                .foregroundColor(.white)
 
-            // プレビュー表示
-            Image(uiImage: filteredImage)
-                .resizable()
-                .scaledToFit()
-                .frame(height: 300)
-                .cornerRadius(10)
-                .padding()
-
-            // 横スクロールフィルター一覧
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack {
+                HStack(spacing: 12) {
                     ForEach(filterList, id: \.self) { filterName in
-                        VStack {
-                            Image(uiImage: ARSnapshotManager.applyFilter(to: originalImage, filterName: filterName))
+                        VStack(spacing: 4) {
+                            Image(uiImage: filteredThumbnail(for: filterName))
                                 .resizable()
                                 .frame(width: 80, height: 80)
                                 .cornerRadius(8)
@@ -42,25 +44,44 @@ struct FilterSelectionView: View {
                                 )
                                 .onTapGesture {
                                     selectedFilter = filterName
-                                    filteredImage = ARSnapshotManager.applyFilter(to: originalImage, filterName: filterName)
+                                    filteredImage = applyFilter(to: originalImage, filterName: filterName)
                                 }
 
                             Text(filterLabel(for: filterName))
                                 .font(.caption2)
+                                .foregroundColor(.white)
                         }
-                        .padding(.horizontal, 4)
                     }
-
                 }
                 .padding(.horizontal)
             }
+
+            Spacer()
         }
+        .padding()
+        .background(Color.black.opacity(0.9))
     }
 
-    /// フィルター表示名の整形
+    func filteredThumbnail(for filterName: String) -> UIImage {
+        return applyFilter(to: originalImage, filterName: filterName)
+    }
+
+    func applyFilter(to image: UIImage, filterName: String) -> UIImage {
+        if filterName == "Normal" {
+            return image
+        }
+        return ARSnapshotManager.applyFilter(to: image, filterName: filterName)
+    }
+
     func filterLabel(for filterName: String) -> String {
-        filterName
-            .replacingOccurrences(of: "CIPhotoEffect", with: "")
-            .replacingOccurrences(of: "CI", with: "")
+        switch filterName {
+        case "CIPhotoEffectNoir": return "Noir"
+        case "CIPhotoEffectChrome": return "Chrome"
+        case "CIPhotoEffectInstant": return "Instant"
+        case "CIPhotoEffectProcess": return "Process"
+        case "CIPhotoEffectTransfer": return "Transfer"
+        case "CISepiaTone": return "Sepia"
+        default: return "Normal"
+        }
     }
 }
