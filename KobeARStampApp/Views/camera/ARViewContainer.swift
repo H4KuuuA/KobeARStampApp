@@ -16,10 +16,12 @@ struct ARViewContainer: UIViewRepresentable {
     func makeUIView(context: Context) -> ARView {
         let arView = ARView(frame: .zero)
 
+        // AR構成設定
         let config = ARWorldTrackingConfiguration()
         config.planeDetection = [.horizontal]
         arView.session.run(config)
 
+        // 仮のモデルを追加
         let box = MeshResource.generateBox(size: 0.1 * scale)
         let material = SimpleMaterial(color: .blue, isMetallic: false)
         let entity = ModelEntity(mesh: box, materials: [material])
@@ -32,7 +34,7 @@ struct ARViewContainer: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: ARView, context: Context) {
-        // スケール変更時の反映は、必要なら実装
+        // スケール更新処理（必要に応じて）
     }
 }
 
