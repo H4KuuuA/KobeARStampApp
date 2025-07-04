@@ -21,9 +21,7 @@ struct MainTabView: View {
             Group {
                 switch activeTab {
                 case .home:
-                    // Text("HomeView()")
-                    Rectangle().fill(Color.red)
-                        .ignoresSafeArea(edges: .all)
+                    MapView()
                 case .stamp:
                     // Text("StampView()")
                     Rectangle().fill(Color.blue)
