@@ -29,9 +29,22 @@
 		681502EC2E0E5267000DCB1E /* KobeARStampAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KobeARStampAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		6841E52F2E177E0E004C7A85 /* Exceptions for "KobeARStampApp" folder in "KobeARStampApp" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 681502D12E0E5264000DCB1E /* KobeARStampApp */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		681502D42E0E5264000DCB1E /* KobeARStampApp */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				6841E52F2E177E0E004C7A85 /* Exceptions for "KobeARStampApp" folder in "KobeARStampApp" target */,
+			);
 			path = KobeARStampApp;
 			sourceTree = "<group>";
 		};
