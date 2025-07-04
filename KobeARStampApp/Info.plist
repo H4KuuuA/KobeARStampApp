@@ -10,7 +10,7 @@
 	<string>位置情報をアプリの使用中に利用します。</string>
 	<key>UIBackgroundModes</key>
 	<array>
-		<string></string>
+		<string>location</string>
 	</array>
 </dict>
 </plist>
