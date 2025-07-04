@@ -47,6 +47,7 @@ struct MainTabView: View {
             }
             .ignoresSafeArea()
         }
+        // ここが将来的に修正必要かも
         .task {
             showSheet = true
         }
@@ -61,7 +62,7 @@ struct MainTabView: View {
                             .foregroundStyle(.gray.opacity(0.8))
                             .font(.title2)
                     }
-
+                    
                 }
             })
             .padding()
