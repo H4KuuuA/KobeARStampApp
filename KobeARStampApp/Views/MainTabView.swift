@@ -50,6 +50,27 @@ struct MainTabView: View {
         .task {
             showSheet = true
         }
+        .sheet(isPresented: $showSheet) {
+            VStack(alignment: .leading, content: {
+                HStack {
+                    Spacer()
+                    Button {
+                        showSheet = false
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.gray.opacity(0.8))
+                            .font(.title2)
+                    }
+
+                }
+            })
+            .padding()
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .presentationDetents([.height(80), .medium, .large])
+            .presentationCornerRadius(20)
+            .presentationBackground(.regularMaterial)
+            .presentationBackgroundInteraction(.enabled(upThrough: .large))
+        }
     }
     
     /// Custom Tab Bar
@@ -139,7 +160,7 @@ struct MainTabView: View {
                 }
         )
         .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 2)
-        .padding(.bottom, 24)
+        .padding(.bottom, 28)
     }
     
 }
