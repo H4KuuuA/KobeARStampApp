@@ -50,16 +50,6 @@ struct MainTabView: View {
         .task {
             showSheet = true
         }
-        .sheet(isPresented: $showSheet) {
-            VStack(alignment: .leading, spacing: 10, content: {
-            })
-            .padding()
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .presentationDetents([.height(80), .medium, .large])
-            .presentationCornerRadius(20)
-            .presentationBackground(.thinMaterial)
-            .presentationBackgroundInteraction(.enabled(upThrough:  .large))
-        }
     }
     
     /// Custom Tab Bar
