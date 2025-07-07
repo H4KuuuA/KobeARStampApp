@@ -15,7 +15,7 @@ class MapViewModel: ObservableObject {
         latitude: 34.70602173020105,
         longitude: 135.2162279954511
     )
-    @Published var radiusInMeters: CLLocationDistance = 2000
+    @Published var radiusInMeters: CLLocationDistance = 1500
     
     private var cancellables = Set<AnyCancellable>()
     private let locationManager = LocationManager.shared
