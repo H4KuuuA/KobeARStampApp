@@ -20,7 +20,7 @@ struct CustomPin: Identifiable {
     var coordinate: CLLocationCoordinate2D
     // ピンの色
     var pinColorName: String?
-    // カスタムピンの画像名
+    // カスタムピンの画像URL
     var imageURL: URL?
     // 詳細説明や備考
     var description: String?
