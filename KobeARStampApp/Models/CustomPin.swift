@@ -21,7 +21,7 @@ struct CustomPin: Identifiable {
     // ピンの色
     var pinColorName: String?
     // カスタムピンの画像名
-    var imageName: String?
+    var imageURL: URL?
     // 詳細説明や備考
     var description: String?
     // カテゴリ分け
@@ -29,6 +29,6 @@ struct CustomPin: Identifiable {
     // 作成日時
     var createdAt: Date
     // 更新日時
-    var updatedAt: Date
+    var updatedAt: Date?
 }
 
