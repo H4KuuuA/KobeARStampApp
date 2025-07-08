@@ -20,14 +20,24 @@ struct ARCameraView: View {
     @State private var showPreview = false
     @State private var selectedFilter: String = "CIPhotoEffectNoir"
     @State private var filteredImage: UIImage = UIImage()
+    @State private var filteredImageFromARView: UIImage? = nil
 
     var body: some View {
         ZStack {
             ARViewContainer(scale: $arScale)
                 .ignoresSafeArea()
 
+            if selectedFilter != "Normal", let previewImage = filteredImageFromARView {
+                Image(uiImage: previewImage)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 300, height: 400)
+                    .clipped()
+                    .opacity(0.6)
+                    .ignoresSafeArea()
+            }
+
             VStack {
-                // 上部ボタン群
                 HStack {
                     Button(action: { /* 戻る処理 */ }) {
                         Image(systemName: "xmark")
@@ -50,15 +60,13 @@ struct ARCameraView: View {
 
                 Spacer()
 
-                // 右スライダー
                 HStack {
                     Spacer()
                     ARScaleSlider(arScale: $arScale)
-                        .padding(.trailing, 2)
+                        .padding(.trailing, 4)
                         .padding(.bottom, 40)
                 }
 
-                // 下部UI
                 VStack(spacing: 16) {
                     HStack {
                         Spacer()
@@ -68,32 +76,26 @@ struct ARCameraView: View {
                             Circle()
                                 .fill(Color.white)
                                 .frame(width: 80, height: 80)
-                                .overlay(
-                                    Circle().stroke(Color.gray, lineWidth: 2)
-                                )
+                                .overlay(Circle().stroke(Color.gray, lineWidth: 2))
                         }
                         Spacer()
                     }
 
-                    // フィルターアイコン & カメラ切替
                     HStack {
                         Spacer()
-
                         Button(action: {
                             showFilter = true
                         }) {
                             ZStack {
-                                Circle()
-                                    .stroke(Color.blue, lineWidth: 3)
+                                Circle().stroke(Color.blue, lineWidth: 3)
                                     .frame(width: 38, height: 38)
-                                Circle()
-                                    .stroke(Color.blue, lineWidth: 1)
+                                Circle().stroke(Color.blue, lineWidth: 1)
                                     .frame(width: 24, height: 24)
                             }
                         }
                         .padding(.trailing, 16)
 
-                        Button(action: { /* カメラ切替（非対応） */ }) {
+                        Button(action: { /* カメラ切替 */ }) {
                             Image(systemName: "camera.rotate")
                                 .font(.system(size: 24))
                                 .foregroundColor(.blue)
@@ -101,7 +103,6 @@ struct ARCameraView: View {
                         .padding(.trailing, 24)
                     }
 
-                    // モード切替（画面下沿い）
                     Picker(selection: $selectedMode, label: Text("")) {
                         Text("Video").tag("Video")
                         Text("Photo").tag("Photo")
@@ -113,6 +114,9 @@ struct ARCameraView: View {
                     .padding(.bottom, 12)
                 }
             }
+        }
+        .onAppear {
+            startLiveFilterPreview()
         }
         .sheet(isPresented: $showGuide) {
             Text("ARカメラの使い方ガイド").padding()
@@ -166,6 +170,48 @@ struct ARCameraView: View {
                 self.showPreview = true
             }
         }
+    }
+
+    func startLiveFilterPreview() {
+        Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+            guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                  let rootVC = windowScene.windows.first?.rootViewController,
+                  let arView = findARView(from: rootVC.view) else {
+                return
+            }
+
+            arView.snapshot(saveToHDR: false) { image in
+                if let img = image {
+                    DispatchQueue.main.async {
+                        let resized = resizeImage(image: img, targetSize: CGSize(width: 300, height: 400))
+                        if selectedFilter == "Normal" {
+                            self.filteredImageFromARView = nil
+                        } else {
+                            self.filteredImageFromARView = ARSnapshotManager.applyFilter(to: resized, filterName: selectedFilter)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    func resizeImage(image: UIImage, targetSize: CGSize) -> UIImage {
+        let renderer = UIGraphicsImageRenderer(size: targetSize)
+        return renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: targetSize))
+        }
+    }
+
+    func findARView(from view: UIView) -> ARView? {
+        if let arView = view as? ARView {
+            return arView
+        }
+        for subview in view.subviews {
+            if let found = findARView(from: subview) {
+                return found
+            }
+        }
+        return nil
     }
 }
 
