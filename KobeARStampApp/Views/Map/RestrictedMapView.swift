@@ -11,6 +11,7 @@ import MapKit
 struct RestrictedMapView: UIViewRepresentable {
     let centerCoordinate: CLLocationCoordinate2D
     let radiusInMeters: CLLocationDistance
+    let pins: [CustomPin]
     
     /// 中心座標と半径をもとに、表示・移動・ズーム範囲を制限した MKMapView を生成する
     /// 円形オーバーレイを表示して、範囲の視覚的な目印も追加する
@@ -39,6 +40,11 @@ struct RestrictedMapView: UIViewRepresentable {
             maxCenterCoordinateDistance: radius * 5
         )
         mapView.setCameraZoomRange(zoomRange, animated: false)
+        
+        // カスタムピン
+        let annotations = pins.map { CustomPinAnnotation(pin: $0)}
+        mapView.addAnnotations(annotations)
+        
         return mapView
     }
     
