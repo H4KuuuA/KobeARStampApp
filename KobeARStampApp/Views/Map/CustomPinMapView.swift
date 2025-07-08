@@ -58,6 +58,12 @@ struct CustomPinMapView: UIViewRepresentable {
             }else {
                 view?.annotation = annotation
             }
+            
+            // カラーコードでのピンの色変更
+            if let hex = annotation.customPin.pinColorName,
+               let color = UIColor(hex: hex) {
+                view?.markerTintColor = color
+            }
             return view
         }
     }
