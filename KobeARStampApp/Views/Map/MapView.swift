@@ -15,7 +15,8 @@ struct MapView: View {
     var body: some View {
         RestrictedMapView(
             centerCoordinate: viewModel.centerCoordinate,
-            radiusInMeters: viewModel.radiusInMeters
+            radiusInMeters: viewModel.radiusInMeters,
+            pins: mockPins
         )
         .edgesIgnoringSafeArea(.all)
         .task {
