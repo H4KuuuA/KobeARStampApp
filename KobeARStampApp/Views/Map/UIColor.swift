@@ -5,6 +5,7 @@
 //  Created by 大江悠都 on 2025/07/08.
 //
 
+import SwiftUI
 import UIKit
 
 extension UIColor {
@@ -37,5 +38,12 @@ extension UIColor {
         default:
             return nil
         }
+    }
+}
+
+extension Color {
+    init?(hex: String) {
+        guard let uiColor = UIColor(hex: hex) else { return nil }
+        self.init(uiColor)
     }
 }

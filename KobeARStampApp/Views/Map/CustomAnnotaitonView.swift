@@ -14,7 +14,12 @@ import SwiftUI
 struct CustomAnnotaitonView: View {
     let pin : CustomPin
     var size: CGFloat = 40
-    var pinColor: Color = .blue
+    var pinColorHex: String = "#0000FF"
+    
+    // pinColorHex を Color に変換。失敗したら青
+    var pinColor: Color {
+        Color(hex: pinColorHex) ?? .blue
+    }
     
     var body: some View {
         VStack(spacing:0) {
@@ -64,5 +69,5 @@ struct CustomAnnotaitonView: View {
 }
 
 #Preview {
-    CustomAnnotaitonView(pin: mockPins[0], size: 96, pinColor: .red)
+    CustomAnnotaitonView(pin: mockPins[0], size: 96, pinColorHex: "#FF0000")
 }

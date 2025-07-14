@@ -59,7 +59,29 @@ struct RestrictedMapView: UIViewRepresentable {
     }
     
     class Coordinator: NSObject, MKMapViewDelegate {
+        func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
+            // 現在地の青い点はデフォルト表示を使う
+            if annotation is MKUserLocation {
+                return nil
+            }
+            
+            // CustomPinAnnotation の場合だけカスタムビューを使う
+            if let customAnnotation = annotation as? CustomPinAnnotation {
+                let identifier = CustomPinAnnotationView.reuseIdentifier
+                
+                var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: identifier) as? CustomPinAnnotationView
+                
+                if annotationView == nil {
+                    annotationView = CustomPinAnnotationView(annotation: customAnnotation, reuseIdentifier: identifier)
+                } else {
+                    annotationView?.annotation = customAnnotation
+                }
+                
+                return annotationView
+            }
+            
+            return nil
+        }
         
-       
     }
 }
