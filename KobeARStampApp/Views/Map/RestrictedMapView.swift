@@ -60,45 +60,6 @@ struct RestrictedMapView: UIViewRepresentable {
     
     class Coordinator: NSObject, MKMapViewDelegate {
         
-        /// CustomPinView
-        ///  - 戻り値：view
-        func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
-            guard let annotation = annotation as? CustomPinAnnotation else {
-                return nil
-            }
-            let identifier = "CustomPin"
-            var view = mapView.dequeueReusableAnnotationView(withIdentifier: identifier) as? MKMarkerAnnotationView
-            if view == nil {
-                view = MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: identifier)
-                view?.canShowCallout = true
-                
-                // カスタム画像があれば
-                if let imageURL = annotation.customPin.imageURL {
-                    let imageView = UIImageView(frame: CGRect(x: 0, y: 0, width: 40, height: 40))
-                    view?.leftCalloutAccessoryView = imageView
-                    
-                    // 非同期で画像読み込み
-                    URLSession.shared.dataTask(with: imageURL) { data, _, error in
-                        guard let data = data, error == nil,
-                              let image = UIImage(data: data) else {
-                            return
-                        }
-                        
-                        DispatchQueue.main.async {
-                            imageView.image = image
-                        }
-                    }.resume()
-                }
-            }else {
-                view?.annotation = annotation
-            }
-            
-            // カラーコードでのピンの色変更
-            if let hex = annotation.customPin.pinColorName,
-               let color = UIColor(hex: hex) {
-                view?.markerTintColor = color
-            }
-            return view
-        }
+       
     }
 }
