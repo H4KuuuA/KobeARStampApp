@@ -7,213 +7,134 @@
 
 // ARCameraView.swift
 import SwiftUI
-import RealityKit
-import ARKit
 
 struct ARCameraView: View {
+    // 状態変数
     @State private var arScale: Float = 1.0
-    @State private var showGuide = false
-    @State private var showFilter = false
-    @State private var selectedMode: String = "Photo"
-    @State private var capturedImage: UIImage? = nil
-    @State private var savedImageURL: URL? = nil
-    @State private var showPreview = false
-    @State private var selectedFilter: String = "CIPhotoEffectNoir"
-    @State private var filteredImage: UIImage = UIImage()
-    @State private var filteredImageFromARView: UIImage? = nil
+    @State private var isFlashOn = false
+    @State private var selectedMode: CaptureMode = .photo
+    
+    @State private var photoAssets: [PhotoAsset] = []
+    @State private var showPhotoSelectionSheet = false
+    @State private var showPreviewAndFilterSheet = false
+    @State private var finalImage: UIImage?
+
+    enum CaptureMode: String {
+        case video = "Video"
+        case photo = "Photos"
+    }
 
     var body: some View {
         ZStack {
             ARViewContainer(scale: $arScale)
                 .ignoresSafeArea()
 
-            if selectedFilter != "Normal", let previewImage = filteredImageFromARView {
-                Image(uiImage: previewImage)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 300, height: 400)
-                    .clipped()
-                    .opacity(0.6)
-                    .ignoresSafeArea()
-            }
-
             VStack {
-                HStack {
-                    Button(action: { /* 戻る処理 */ }) {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 24))
-                            .padding()
-                    }
-                    Spacer()
-                    HStack(spacing: 16) {
-                        Button(action: { /* フラッシュ切替 */ }) {
-                            Image(systemName: "bolt.fill")
-                                .font(.system(size: 24))
-                        }
-                        Button(action: { showGuide = true }) {
-                            Image(systemName: "questionmark.circle")
-                                .font(.system(size: 24))
-                        }
-                    }
-                    .padding(.trailing, 16)
-                }
-
+                topControls()
                 Spacer()
-
                 HStack {
                     Spacer()
                     ARScaleSlider(arScale: $arScale)
-                        .padding(.trailing, 4)
-                        .padding(.bottom, 40)
                 }
-
-                VStack(spacing: 16) {
-                    HStack {
-                        Spacer()
-                        Button(action: {
-                            takeSnapshot()
-                        }) {
-                            Circle()
-                                .fill(Color.white)
-                                .frame(width: 80, height: 80)
-                                .overlay(Circle().stroke(Color.gray, lineWidth: 2))
-                        }
-                        Spacer()
-                    }
-
-                    HStack {
-                        Spacer()
-                        Button(action: {
-                            showFilter = true
-                        }) {
-                            ZStack {
-                                Circle().stroke(Color.blue, lineWidth: 3)
-                                    .frame(width: 38, height: 38)
-                                Circle().stroke(Color.blue, lineWidth: 1)
-                                    .frame(width: 24, height: 24)
-                            }
-                        }
-                        .padding(.trailing, 16)
-
-                        Button(action: { /* カメラ切替 */ }) {
-                            Image(systemName: "camera.rotate")
-                                .font(.system(size: 24))
-                                .foregroundColor(.blue)
-                        }
-                        .padding(.trailing, 24)
-                    }
-
-                    Picker(selection: $selectedMode, label: Text("")) {
-                        Text("Video").tag("Video")
-                        Text("Photo").tag("Photo")
-                    }
-                    .pickerStyle(SegmentedPickerStyle())
-                    .frame(width: 160)
-                    .background(Color.black.opacity(0.5))
-                    .clipShape(Capsule())
-                    .padding(.bottom, 12)
-                }
+                .padding(.trailing, 10)
+                Spacer()
+                bottomControls()
+            }
+            .foregroundColor(.white)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .snapshotTaken)) { notification in
+            if let image = notification.object as? UIImage {
+                let newAsset = PhotoAsset(image: image)
+                photoAssets.append(newAsset)
+                showPhotoSelectionSheet = true
             }
         }
-        .onAppear {
-            startLiveFilterPreview()
-        }
-        .sheet(isPresented: $showGuide) {
-            Text("ARカメラの使い方ガイド").padding()
-        }
-        .sheet(isPresented: $showPreview) {
-            if let image = capturedImage {
-                VStack {
-                    Image(uiImage: filteredImage)
-                        .resizable()
-                        .scaledToFit()
-                        .padding()
-
-                    Button("カメラロールに保存") {
-                        UIImageWriteToSavedPhotosAlbum(filteredImage, nil, nil, nil)
-                        showPreview = false
+        .sheet(isPresented: $showPhotoSelectionSheet) {
+            PhotoSelectionView(
+                assets: $photoAssets,
+                isPresented: $showPhotoSelectionSheet,
+                onPhotoSelected: { selectedImage in
+                    finalImage = selectedImage
+                    showPhotoSelectionSheet = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        showPreviewAndFilterSheet = true
                     }
-                    .padding()
-
-                    Button("閉じる") {
-                        showPreview = false
-                    }
-                    .padding()
                 }
-            }
+            )
         }
-        .sheet(isPresented: $showFilter) {
-            if let captured = capturedImage {
-                FilterSelectionView(
-                    originalImage: captured,
-                    selectedFilter: $selectedFilter,
-                    filteredImage: $filteredImage
-                )
-            } else {
-                Text("画像がありません")
+        .sheet(isPresented: $showPreviewAndFilterSheet) {
+            if let image = finalImage {
+                PreviewAndFilterView(originalImage: image, isPresented: $showPreviewAndFilterSheet)
             }
         }
     }
 
-    func takeSnapshot() {
-        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let rootVC = windowScene.windows.first?.rootViewController else {
-            return
-        }
-
-        ARSnapshotManager.takeSnapshot(from: rootVC.view) { image in
-            if let uiImage = image {
-                let filtered = ARSnapshotManager.applyFilter(to: uiImage, filterName: selectedFilter)
-                self.capturedImage = uiImage
-                self.filteredImage = filtered
-                self.savedImageURL = ARSnapshotManager.saveImageToAppDirectory(image: filtered)
-                self.showPreview = true
+    // MARK: - UI Components
+    @ViewBuilder
+    private func topControls() -> some View {
+        HStack {
+            Button(action: { /* TODO: 閉じる処理 */ }) {
+                Image(systemName: "xmark").font(.title2).padding().background(Color.black.opacity(0.5)).clipShape(Circle())
             }
-        }
+            Spacer()
+            Button(action: { isFlashOn.toggle() /* TODO: フラッシュ制御 */ }) {
+                Image(systemName: isFlashOn ? "bolt.fill" : "bolt.slash.fill").font(.title2).padding().background(Color.black.opacity(0.5)).clipShape(Circle())
+            }
+        }.padding(.horizontal).padding(.top, 50)
     }
-
-    func startLiveFilterPreview() {
-        Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-            guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                  let rootVC = windowScene.windows.first?.rootViewController,
-                  let arView = findARView(from: rootVC.view) else {
-                return
-            }
-
-            arView.snapshot(saveToHDR: false) { image in
-                if let img = image {
-                    DispatchQueue.main.async {
-                        let resized = resizeImage(image: img, targetSize: CGSize(width: 300, height: 400))
-                        if selectedFilter == "Normal" {
-                            self.filteredImageFromARView = nil
+    
+    @ViewBuilder
+    private func bottomControls() -> some View {
+        VStack(spacing: 20) {
+        
+            HStack(alignment: .center) {
+                Button(action: {
+                    if !photoAssets.isEmpty { showPhotoSelectionSheet = true }
+                }) {
+                    ZStack(alignment: .topTrailing) {
+                        if let lastAsset = photoAssets.last {
+                            Image(uiImage: lastAsset.image)
+                                .resizable().scaledToFill().frame(width: 50, height: 50).clipShape(RoundedRectangle(cornerRadius: 8))
+                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.white, lineWidth: 1))
                         } else {
-                            self.filteredImageFromARView = ARSnapshotManager.applyFilter(to: resized, filterName: selectedFilter)
+                            Image(systemName: "photo.on.rectangle.angled")
+                                .font(.system(size: 28)).foregroundColor(.white).frame(width: 50, height: 50)
+                        }
+                        if !photoAssets.isEmpty {
+                            Text("\(photoAssets.count)")
+                                .font(.caption2.bold()).foregroundColor(.white).padding(5).background(Color.red).clipShape(Circle())
+                                .offset(x: 5, y: -5)
                         }
                     }
+                }.frame(width: 60)
+                
+                Spacer()
+                Button(action: { NotificationCenter.default.post(name: .takeSnapshot, object: nil) }) {
+                    ZStack {
+                        Circle().strokeBorder(Color.white.opacity(0.8), lineWidth: 4).frame(width: 80, height: 80)
+                        Circle().fill(Color.white).frame(width: 68, height: 68)
+                    }
                 }
+                Spacer()
+                Button(action: { /* TODO: カメラ切り替え */ }) {
+                    Image(systemName: "arrow.triangle.2.circlepath.camera").font(.largeTitle)
+                }.frame(width: 60)
             }
-        }
-    }
+            .padding(.horizontal, 30) // この列の左右パディング
 
-    func resizeImage(image: UIImage, targetSize: CGSize) -> UIImage {
-        let renderer = UIGraphicsImageRenderer(size: targetSize)
-        return renderer.image { _ in
-            image.draw(in: CGRect(origin: .zero, size: targetSize))
+            
+            HStack(spacing: 20) {
+                Button(CaptureMode.video.rawValue) { selectedMode = .video }.foregroundColor(selectedMode == .video ? .yellow : .white)
+                Button(CaptureMode.photo.rawValue) { selectedMode = .photo }.foregroundColor(selectedMode == .photo ? .yellow : .white)
+            }.font(.headline)
         }
-    }
-
-    func findARView(from view: UIView) -> ARView? {
-        if let arView = view as? ARView {
-            return arView
-        }
-        for subview in view.subviews {
-            if let found = findARView(from: subview) {
-                return found
-            }
-        }
-        return nil
+        .padding(.top, 20) // 上のシャッターボタンとの余白
+        .padding(.bottom, 30) // 画面の底辺からの余白
+        .frame(maxWidth: .infinity)
+        .background(Color.black.opacity(0.3))
     }
 }
+
 
 
 
