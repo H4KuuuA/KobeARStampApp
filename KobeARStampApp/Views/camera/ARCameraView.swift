@@ -14,6 +14,8 @@ struct ARCameraView: View {
     @State private var isFlashOn = false
     @State private var selectedMode: CaptureMode = .photo
     
+    @State private var showGuide = false
+    
     @State private var photoAssets: [PhotoAsset] = []
     @State private var showPhotoSelectionSheet = false
     @State private var showPreviewAndFilterSheet = false
@@ -67,26 +69,79 @@ struct ARCameraView: View {
                 PreviewAndFilterView(originalImage: image, isPresented: $showPreviewAndFilterSheet)
             }
         }
+        // 使い方ガイドのシート
+        .sheet(isPresented: $showGuide) {
+            VStack(alignment: .leading, spacing: 20) {
+                HStack {
+                    Text("ARカメラの使い方")
+                        .font(.largeTitle.bold())
+                    Spacer()
+                    Button { showGuide = false } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title)
+                            .foregroundColor(.gray.opacity(0.5))
+                    }
+                }
+                
+                Text("1. ")
+                Text("2. ")
+                Text("3. ")
+                
+                Spacer()
+            }
+            .padding(30)
+        }
     }
 
     // MARK: - UI Components
     @ViewBuilder
     private func topControls() -> some View {
+        // --- ここを修正 ---
         HStack {
+            // 左: 閉じるボタン
             Button(action: { /* TODO: 閉じる処理 */ }) {
-                Image(systemName: "xmark").font(.title2).padding().background(Color.black.opacity(0.5)).clipShape(Circle())
+                Image(systemName: "xmark")
+                    .font(.title2)
+                    .foregroundColor(.white)
+                    .frame(width: 44, height: 44)
+                    .background(Color.black.opacity(0.5))
+                    .clipShape(Circle())
             }
+
             Spacer()
+
+            // 中央: フラッシュボタン
             Button(action: { isFlashOn.toggle() /* TODO: フラッシュ制御 */ }) {
-                Image(systemName: isFlashOn ? "bolt.fill" : "bolt.slash.fill").font(.title2).padding().background(Color.black.opacity(0.5)).clipShape(Circle())
+                Image(systemName: isFlashOn ? "bolt.fill" : "bolt.slash.fill")
+                    .font(.title2)
+                    .foregroundColor(.white)
+                    .frame(width: 44, height: 44)
+                    .background(Color.black.opacity(0.5))
+                    .clipShape(Circle())
             }
-        }.padding(.horizontal).padding(.top, 50)
+
+            Spacer()
+
+            // 右: 使い方ガイドボタン
+            Button(action: {
+                showGuide = true // ガイドのシートを表示
+            }) {
+                Image(systemName: "info.circle")
+                    .font(.title2)
+                    .foregroundColor(.white)
+                    .frame(width: 44, height: 44)
+                    .background(Color.black.opacity(0.5))
+                    .clipShape(Circle())
+            }
+        }
+        .padding(.horizontal)
+        .padding(.top, 50) // セーフエリアを考慮
     }
     
     @ViewBuilder
     private func bottomControls() -> some View {
+        // (変更なし)
         VStack(spacing: 20) {
-        
             HStack(alignment: .center) {
                 Button(action: {
                     if !photoAssets.isEmpty { showPhotoSelectionSheet = true }
@@ -117,23 +172,26 @@ struct ARCameraView: View {
                 }
                 Spacer()
                 Button(action: { /* TODO: カメラ切り替え */ }) {
-                    Image(systemName: "arrow.triangle.2.circlepath.camera").font(.largeTitle)
-                }.frame(width: 60)
+                    Image(systemName: "arrow.triangle.2.circlepath").font(.title2).foregroundColor(.white)
+                }
+                .frame(width: 60)
+                
             }
-            .padding(.horizontal, 30) // この列の左右パディング
+            .padding(.horizontal, 30)
+            .padding(.bottom, 20)
 
-            
             HStack(spacing: 20) {
-                Button(CaptureMode.video.rawValue) { selectedMode = .video }.foregroundColor(selectedMode == .video ? .yellow : .white)
-                Button(CaptureMode.photo.rawValue) { selectedMode = .photo }.foregroundColor(selectedMode == .photo ? .yellow : .white)
+                Button(CaptureMode.video.rawValue) { selectedMode = .video }.foregroundColor(selectedMode == .video ? .cyan : .white)
+                Button(CaptureMode.photo.rawValue) { selectedMode = .photo }.foregroundColor(selectedMode == .photo ? .cyan : .white)
             }.font(.headline)
         }
-        .padding(.top, 20) // 上のシャッターボタンとの余白
-        .padding(.bottom, 30) // 画面の底辺からの余白
+        .padding(.top, 20)
+        .padding(.bottom, 30)
         .frame(maxWidth: .infinity)
         .background(Color.black.opacity(0.3))
     }
 }
+
 
 
 

@@ -44,7 +44,6 @@ struct ARViewContainer: UIViewRepresentable {
         Coordinator(self)
     }
 
-    // MARK: - Coordinator
     // ARKitのデリゲートや、ARViewのイベント処理を担当します。
     class Coordinator: NSObject {
         var parent: ARViewContainer
