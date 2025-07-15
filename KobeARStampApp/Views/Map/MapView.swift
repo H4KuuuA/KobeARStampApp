@@ -27,8 +27,28 @@ struct MapView: View {
             if let pin = notification.object as? CustomPin {
                 // ここでSwiftUI側のアクション
                 print("🟢 SwiftUI側で受け取ったピン: \(pin.title)")
-                selectedPin = pin // 例：シート表示に使う
+                selectedPin = pin
             }
+        }
+        .sheet(item: $selectedPin) { pin in
+            VStack(alignment: .leading, content: {
+                HStack {
+                    Spacer()
+                    Button {
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.gray.opacity(0.8))
+                            .font(.title2)
+                    }
+                    
+                }
+            })
+            .padding()
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .presentationDetents([.height(80), .medium, .large])
+            .presentationCornerRadius(20)
+            .presentationBackground(.regularMaterial)
+            .presentationBackgroundInteraction(.enabled(upThrough: .large))
         }
     }
 }
