@@ -82,6 +82,19 @@ struct RestrictedMapView: UIViewRepresentable {
             
             return nil
         }
+        func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
+            guard let customAnnotation = view.annotation as? CustomPinAnnotation else { return }
+            print("\(customAnnotation.title ?? "No title") selected")
+            
+            // 通知処理
+            NotificationCenter.default.post(
+                name: Notification.Name.customPinTapped,
+                object: customAnnotation.customPin
+            )
+        }
         
     }
+}
+extension Notification.Name {
+    static let customPinTapped = Notification.Name("customPinTapped")
 }
