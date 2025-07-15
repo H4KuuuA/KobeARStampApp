@@ -14,7 +14,6 @@ struct MainTabView: View {
     @State private var allTabs: [AnimatedTabModel] = TabModel.allCases.compactMap { tab -> AnimatedTabModel? in
         return .init(tab: tab)
     }
-    @State private var showSheet : Bool = false
     
     var body: some View {
         ZStack {
@@ -44,31 +43,6 @@ struct MainTabView: View {
                 }
             }
             .ignoresSafeArea()
-        }
-        // ここが将来的に修正必要かも
-        .task {
-            showSheet = true
-        }
-        .sheet(isPresented: $showSheet) {
-            VStack(alignment: .leading, content: {
-                HStack {
-                    Spacer()
-                    Button {
-                        showSheet = false
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.gray.opacity(0.8))
-                            .font(.title2)
-                    }
-                    
-                }
-            })
-            .padding()
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .presentationDetents([.height(80), .medium, .large])
-            .presentationCornerRadius(20)
-            .presentationBackground(.regularMaterial)
-            .presentationBackgroundInteraction(.enabled(upThrough: .large))
         }
     }
     
