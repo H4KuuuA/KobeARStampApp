@@ -41,7 +41,10 @@ class CustomPinAnnotationView: MKAnnotationView {
                     hositingController!.view.bottomAnchor.constraint(equalTo: bottomAnchor)
                 ])
             } else {
-                hositingController?.rootView = swiftUIView
+                // view構築が重くなるのを防ぐため、差分がなければ更新しない
+                if hositingController?.rootView.pin.id != customAnnotation.customPin.id {
+                    hositingController?.rootView = swiftUIView
+                }
             }
             // 表示サイズと位置調整
             frame = CGRect(x: 0, y: 0, width: viewSize, height: viewSize)

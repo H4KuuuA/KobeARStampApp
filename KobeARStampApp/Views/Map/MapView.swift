@@ -23,21 +23,35 @@ struct MapView: View {
             .edgesIgnoringSafeArea(.all)
             
             if let pin = selectedPin {
-                CardView(pin: pin) {
-                    selectedPin = nil
+                VStack {
+                    Spacer()
+                    
+                    CardView(pin: pin) {
+                        selectedPin = nil
+                    }
+                    .frame(maxWidth: 350)
+                    .padding()
+                    .padding(.bottom, 70)
                 }
-                .frame(maxWidth: 350)
-                .padding()
                 .transition(.move(edge: .bottom).combined(with: .opacity))
                 .zIndex(1)
             }
         }
+        .animation(.easeInOut(duration: 0.3), value: selectedPin)
         .onReceive(NotificationCenter.default.publisher(for: .customPinTapped)) { notification in
-            if let pin = notification.object as? CustomPin {
-                selectedPin = pin
+            if let newPin = notification.object as? CustomPin {
+                if selectedPin?.id != newPin.id {
+                    withAnimation {
+                        selectedPin = nil
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                        withAnimation {
+                            selectedPin = newPin
+                        }
+                    }
+                }
             }
         }
-        .animation(.easeInOut, value: selectedPin)
     }
 }
 
