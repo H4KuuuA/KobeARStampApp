@@ -9,7 +9,7 @@ import Foundation
 import CoreLocation
 
 /// カスタムピンの構造体
-struct CustomPin: Identifiable {
+struct CustomPin: Identifiable, Equatable {
     //　一意の識別子
     let id: UUID
     // ピンのタイトル
@@ -32,3 +32,8 @@ struct CustomPin: Identifiable {
     var updatedAt: Date?
 }
 
+extension CLLocationCoordinate2D: @retroactive Equatable {
+    public static func ==(lhs: CLLocationCoordinate2D, rhs: CLLocationCoordinate2D) -> Bool {
+        return lhs.latitude == rhs.latitude && lhs.longitude == rhs.longitude
+    }
+}

@@ -14,44 +14,33 @@ struct MapView: View {
     @State private var selectedPin: CustomPin? = nil
     
     var body: some View {
-        RestrictedMapView(
-            centerCoordinate: viewModel.centerCoordinate,
-            radiusInMeters: viewModel.radiusInMeters,
-            pins: mockPins
-        )
-        .edgesIgnoringSafeArea(.all)
-//        .task {
-//            await viewModel.requestPermission()
-//        }
+        ZStack {
+            RestrictedMapView(
+                centerCoordinate: viewModel.centerCoordinate,
+                radiusInMeters: viewModel.radiusInMeters,
+                pins: mockPins
+            )
+            .edgesIgnoringSafeArea(.all)
+            
+            if let pin = selectedPin {
+                CardView(pin: pin) {
+                    selectedPin = nil
+                }
+                .frame(maxWidth: 350)
+                .padding()
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .zIndex(1)
+            }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .customPinTapped)) { notification in
             if let pin = notification.object as? CustomPin {
-                // ここでSwiftUI側のアクション
-                print("🟢 SwiftUI側で受け取ったピン: \(pin.title)")
                 selectedPin = pin
             }
         }
-        .sheet(item: $selectedPin) { pin in
-            VStack(alignment: .leading, content: {
-                HStack {
-                    Spacer()
-                    Button {
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.gray.opacity(0.8))
-                            .font(.title2)
-                    }
-                    
-                }
-            })
-            .padding()
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .presentationDetents([.height(80), .medium, .large])
-            .presentationCornerRadius(20)
-            .presentationBackground(.regularMaterial)
-            .presentationBackgroundInteraction(.enabled(upThrough: .large))
-        }
+        .animation(.easeInOut, value: selectedPin)
     }
 }
+
 
 #Preview {
     MapView()
