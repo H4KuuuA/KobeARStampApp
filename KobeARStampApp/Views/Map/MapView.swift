@@ -40,14 +40,12 @@ struct MapView: View {
         .animation(.easeInOut(duration: 0.3), value: selectedPin)
         .onReceive(NotificationCenter.default.publisher(for: .customPinTapped)) { notification in
             if let newPin = notification.object as? CustomPin {
-                if selectedPin?.id != newPin.id {
+                withAnimation {
+                    selectedPin = nil
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
                     withAnimation {
-                        selectedPin = nil
-                    }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-                        withAnimation {
-                            selectedPin = newPin
-                        }
+                        selectedPin = newPin
                     }
                 }
             }

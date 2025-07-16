@@ -44,7 +44,7 @@ let mockPins: [CustomPin] = [
         id: UUID(),
         title: "HAT神戸の道",
         subtitle: "海沿いの散策路",
-        coordinate: CLLocationCoordinate2D(latitude: 34.697385064900914, longitude: 135.21659017406387),
+        coordinate: CLLocationCoordinate2D(latitude: 34.69782178897619, longitude: 135.21539125345234),
         pinColorName: "#FFECAE",
         imageURL: URL(string: "https://example.com/images/hat_path.png"),
         description: "HAT神戸地区を海沿いに歩ける快適な散歩道。",

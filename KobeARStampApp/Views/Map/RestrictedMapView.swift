@@ -59,6 +59,9 @@ struct RestrictedMapView: UIViewRepresentable {
     }
     
     class Coordinator: NSObject, MKMapViewDelegate {
+        private var pinLastTapTimes: [String: Date] = [:]
+        private let tapDebounceInterval: TimeInterval = 0.3
+        
         func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
             // 現在地の青い点はデフォルト表示を使う
             if annotation is MKUserLocation {
@@ -74,7 +77,8 @@ struct RestrictedMapView: UIViewRepresentable {
                 if annotationView == nil {
                     annotationView = CustomPinAnnotationView(annotation: customAnnotation, reuseIdentifier: identifier)
                 } else {
-                    annotationView?.annotation = customAnnotation
+                    // annotation の再代入を避けることで willSet 発火を回避
+                    // 更新タイミングが不要なら何もしない
                 }
                 
                 return annotationView
@@ -82,8 +86,25 @@ struct RestrictedMapView: UIViewRepresentable {
             
             return nil
         }
+        
         func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
             guard let customAnnotation = view.annotation as? CustomPinAnnotation else { return }
+            
+            let pinId = customAnnotation.customPin.id.uuidString
+            let currentTime = Date()
+            
+            // デバウンス処理：0.3秒以内のタップは無視
+            if let lastTap = pinLastTapTimes[pinId],
+               currentTime.timeIntervalSince(lastTap) < tapDebounceInterval {
+                print("デバウンス: \(customAnnotation.title ?? "No title") のタップが早すぎます - 無視します")
+                // 選択を解除して次回のタップに備える
+                mapView.deselectAnnotation(view.annotation, animated: false)
+                return
+            }
+            
+            // 有効なタップとして処理
+            pinLastTapTimes[pinId] = currentTime
+            
             print("\(customAnnotation.title ?? "No title") selected")
             
             // 通知処理
@@ -91,10 +112,14 @@ struct RestrictedMapView: UIViewRepresentable {
                 name: Notification.Name.customPinTapped,
                 object: customAnnotation.customPin
             )
+            
+            // 選択を解除して連続タップを可能にする
+            mapView.deselectAnnotation(view.annotation, animated: false)
         }
         
     }
 }
+
 extension Notification.Name {
     static let customPinTapped = Notification.Name("customPinTapped")
 }

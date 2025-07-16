@@ -20,7 +20,12 @@ class CustomPinAnnotationView: MKAnnotationView {
             guard let  customAnnotation = newValue as? CustomPinAnnotation else { return }
             
             // SwiftUI側と同期するピンの見た目サイズ
-            let viewSize: CGFloat = 50
+            let viewSize: CGFloat = 70
+            let pinTipOffsetx = viewSize / 14
+            let pinTipOffsety = viewSize * 3 / 4
+            
+            centerOffset = CGPoint(x:-pinTipOffsetx, y: -pinTipOffsety)
+            
             let pinColorHex = customAnnotation.customPin.pinColorName ?? "#0000FF"
             let swiftUIView = CustomAnnotaitonView(
                 pin: customAnnotation.customPin,
@@ -48,7 +53,7 @@ class CustomPinAnnotationView: MKAnnotationView {
             }
             // 表示サイズと位置調整
             frame = CGRect(x: 0, y: 0, width: viewSize, height: viewSize)
-            centerOffset = CGPoint(x: 0, y: -viewSize / 2)
+//            centerOffset = CGPoint(x: 0, y: -viewSize * 3 / 4)
             
         }
     }
