@@ -11,6 +11,7 @@ import MapKit
 struct MapView: View {
     @StateObject private var viewModel = MapViewModel()
     @State private var selectedPin: CustomPin? = nil
+    @State private var isDetailSheetPresented = false
     
     var body: some View {
         ZStack {
@@ -35,12 +36,23 @@ struct MapView: View {
                     .frame(maxWidth: 350)
                     .padding()
                     .padding(.bottom, 70)
+                    .onTapGesture {
+                        isDetailSheetPresented = true
+                    }
                 }
                 .transition(.move(edge: .bottom).combined(with: .opacity))
                 .zIndex(1)
             }
         }
         .animation(.easeInOut(duration: 0.3), value: selectedPin)
+        .sheet(isPresented: $isDetailSheetPresented) {
+            if let pin = selectedPin {
+                Text("PinDetailSheetView(pin: pin)")
+                    .presentationDetents([.large]) 
+                    .presentationDragIndicator(.visible)
+            }
+        }
+
         .onReceive(NotificationCenter.default.publisher(for: .customPinTapped)) { notification in
             if let newPin = notification.object as? CustomPin {
                 withAnimation {
