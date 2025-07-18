@@ -5,7 +5,6 @@
 //  Created by 大江悠都 on 2025/07/04.
 //
 
-
 import SwiftUI
 import MapKit
 
@@ -21,6 +20,10 @@ struct MapView: View {
                 pins: mockPins
             )
             .edgesIgnoringSafeArea(.all)
+            .onTapGesture {
+                // マップをタップしたときにピンの選択を解除
+                NotificationCenter.default.post(name: .customPinDeselected, object: nil)
+            }
             
             if let pin = selectedPin {
                 VStack {
@@ -52,7 +55,6 @@ struct MapView: View {
         }
     }
 }
-
 
 #Preview {
     MapView()
