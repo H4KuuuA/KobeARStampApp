@@ -53,6 +53,12 @@ struct MapView: View {
                 }
             }
         }
+        // ★ 追加：ピン以外がタップされたときにカードも閉じる
+        .onReceive(NotificationCenter.default.publisher(for: .customPinDeselected)) { _ in
+            withAnimation {
+                selectedPin = nil
+            }
+        }
     }
 }
 
