@@ -47,8 +47,8 @@ struct MapView: View {
         .animation(.easeInOut(duration: 0.3), value: selectedPin)
         .sheet(isPresented: $isDetailSheetPresented) {
             if let pin = selectedPin {
-                Text("PinDetailSheetView(pin: pin)")
-                    .presentationDetents([.large]) 
+                PinDetailSheetView(pin: pin)
+                    .presentationDetents([.large])
                     .presentationDragIndicator(.visible)
             }
         }
