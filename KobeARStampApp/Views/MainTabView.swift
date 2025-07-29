@@ -14,35 +14,51 @@ struct MainTabView: View {
     @State private var allTabs: [AnimatedTabModel] = TabModel.allCases.compactMap { tab -> AnimatedTabModel? in
         return .init(tab: tab)
     }
+    @State private var showMenu = false
+    @State private var showNotification = false
     
     var body: some View {
         ZStack {
-            Group {
-                switch activeTab {
-                case .home:
-                    MapView()
-                case .stamp:
-                    // Text("StampView()")
-                    Rectangle().fill(Color.blue)
-                        .ignoresSafeArea(edges: .all)
-                }
-            }
-            
             VStack(spacing: 0) {
-                Spacer()
+                // Navigation Bar
+                CustomNavigationBar(
+                    onMenuTap: {
+                        showMenu = true
+                    },
+                    onNotificationTap: {
+                        showNotification = true
+                    }
+                )
+                
+                
+                // Main Content
                 ZStack {
-                    CustomTabBar()
-                    VStack {
-                        HStack {
-                            Spacer()
-                            
-                            ARCameraButton()
-                            Spacer()
+                    Group {
+                        switch activeTab {
+                        case .home:
+                            MapView()
+                        case .stamp:
+                            Rectangle().fill(Color.blue)
+                                .ignoresSafeArea(edges: .all)
                         }
                     }
+                    
+                    VStack(spacing: 0) {
+                        Spacer()
+                        ZStack {
+                            CustomTabBar()
+                            VStack {
+                                HStack {
+                                    Spacer()
+                                    ARCameraButton()
+                                    Spacer()
+                                }
+                            }
+                        }
+                    }
+                    .ignoresSafeArea()
                 }
             }
-            .ignoresSafeArea()
         }
     }
     
@@ -62,18 +78,18 @@ struct MainTabView: View {
                         .textScale(.secondary)
                 }
                 .frame(maxWidth: .infinity)
-                .foregroundStyle(activeTab == tab ? Color.primary : Color .gray.opacity(0.8))
+                .foregroundStyle(activeTab == tab ? Color("DarkBlue") : Color.gray.opacity(0.8))
                 .padding(.top, 15)
                 .padding(.bottom, 10)
                 .contentShape(.rect)
                 .onTapGesture {
-                    withAnimation(.bouncy, completionCriteria :.logicallyComplete, {
+                    withAnimation(.bouncy, completionCriteria: .logicallyComplete, {
                         activeTab = tab
                         animatedTab.isAnimating = true
                     }, completion: {
-                        var transction = Transaction()
-                        transction.disablesAnimations = true
-                        withTransaction(transction) {
+                        var transaction = Transaction()
+                        transaction.disablesAnimations = true
+                        withTransaction(transaction) {
                             animatedTab.isAnimating = nil
                         }
                     })
@@ -81,60 +97,38 @@ struct MainTabView: View {
             }
         }
         .frame(height: 48)
-        .background(.regularMaterial)
+        .background(Color.white)
     }
     
     /// AR Camera Button
     @ViewBuilder
     func ARCameraButton() -> some View {
-        Button(action:{
-            // カメラ起動
+        Button(action: {
+            // カメラ起動処理
         }) {
             ZStack {
+                // 外側の黒丸
                 Circle()
-                    .fill(
-                        LinearGradient(
-                            gradient: Gradient(colors: [
-                                Color("LightBlue"),
-                                Color("DarkBlue")
-                            ]),
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                    .frame(width: 72, height: 72) // サイズ調整（円）
+                    .fill(Color("DarkBlue"))
+                    .frame(width: 80, height: 80)
                     .shadow(color: .black.opacity(0.25), radius: 8, x: 0, y: 4)
-                    .overlay(
-                        Circle()
-                            .stroke(Color.white.opacity(0.3), lineWidth: 1.2)
-                    )
-                VStack(spacing: 0) {
-                    Text("AR")
-                        .fontWeight(.bold)
-                        .foregroundColor(.white.opacity(0.9))
-                    
-                    Image(systemName: "camera")
-                        .resizable()
-                        .scaledToFit()
-                        .fontWeight(.medium)
-                        .frame(width: 42, height: 42)
-                        .foregroundColor(.white)
-                }
+                
+                // 内側の白縁サークル
+                Circle()
+                    .stroke(Color.white, lineWidth: 1.2)
+                    .frame(width: 74, height: 74)
+                
+                // 中央の SF Symbol アイコン
+                Image(systemName: "arkit")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 25, height: 25)
+                    .foregroundColor(.white)
             }
-            .scaleEffect(isPressed ? 0.92 : 1.0) // 小さくして戻す
-            .animation(.spring(response: 0.5, dampingFraction: 0.6), value: isPressed)
         }
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { _ in isPressed = true }
-                .onEnded { _ in
-                    isPressed = false
-                    // タップ完了後の処理はここで実行してもOK
-                }
-        )
-        .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 2)
-        .padding(.bottom, 28)
+        .padding(.bottom, 23)
     }
+    
     
 }
 
