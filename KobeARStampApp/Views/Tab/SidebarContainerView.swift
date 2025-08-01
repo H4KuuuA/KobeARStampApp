@@ -19,11 +19,13 @@ struct SidebarContainerView: View {
             showMenu: $showMenu
         ){ safeArea in
             NavigationStack {
-                MapView()
+                HomeView()
             }
         } menuView: { safeArea in
             
         } background:  {
+            Rectangle()
+                .fill(Color.black)
             
         }
     }

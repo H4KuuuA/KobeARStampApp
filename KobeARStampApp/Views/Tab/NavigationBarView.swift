@@ -51,6 +51,9 @@ private struct MenuButton: View {
     var body: some View {
         Button(action: {
             showMenu.toggle()
+            
+            NotificationCenter.default.post(name: .customPinDeselected, object: nil)
+            
         }) {
             Image(systemName: showMenu ? "xmark" : "line.3.horizontal")
                 .font(.title2)

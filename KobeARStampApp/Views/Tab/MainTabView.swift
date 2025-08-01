@@ -18,31 +18,46 @@ struct MainTabView: View {
     @State private var showNotification = false
     
     var body: some View {
-        ZStack {
+        // AnimationSideBarで全体をラップ
+        AnimationSideBar(
+            rotatesWhenExpands: true,
+            disablesInteraction: true,
+            sideMenuWidth: 200,
+            cornerRadius: 25,
+            showMenu: $showMenu
+        ) { safeArea in
+            // メインコンテンツ
             VStack(spacing: 0) {
-                // Navigation Bar
+                // Navigation Bar（最上部に固定）
                 CustomNavigationBar(
                     onMenuTap: {
-                        showMenu = true
+                        withAnimation(.snappy(duration: 0.3, extraBounce: 0)) {
+                            showMenu.toggle()
+                        }
                     },
                     onNotificationTap: {
                         showNotification = true
-                    }, showMenu: $showMenu
+                        print("🔔 Notification tapped")
+                    },
+                    showMenu: $showMenu
                 )
-                
+                .padding(.top, safeArea.top)
+                .background(Color.white)
+                .zIndex(100) // 最前面に表示
                 
                 // Main Content
                 ZStack {
+                    // 地図やその他のメインコンテンツ
                     Group {
                         switch activeTab {
                         case .home:
                             MapView()
                         case .stamp:
                             Rectangle().fill(Color.blue)
-                                .ignoresSafeArea(edges: .all)
                         }
                     }
                     
+                    // タブバーとARボタン（下部に配置）
                     VStack(spacing: 0) {
                         Spacer()
                         ZStack {
@@ -56,9 +71,13 @@ struct MainTabView: View {
                             }
                         }
                     }
-                    .ignoresSafeArea()
+                    .zIndex(99) // タブバーも前面に表示
                 }
             }
+        } menuView: { safeArea in
+            SideMenuView(safeArea)
+        } background: {
+            Color("menu_background_color")
         }
     }
     
@@ -98,6 +117,7 @@ struct MainTabView: View {
         }
         .frame(height: 48)
         .background(Color.white)
+        .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: -2)
     }
     
     /// AR Camera Button
@@ -105,6 +125,7 @@ struct MainTabView: View {
     func ARCameraButton() -> some View {
         Button(action: {
             // カメラ起動処理
+            print("🎥 AR Camera button tapped")
         }) {
             ZStack {
                 // 外側の黒丸
@@ -128,10 +149,21 @@ struct MainTabView: View {
         }
         .padding(.bottom, 23)
     }
-    
-    
+    @ViewBuilder
+    func SideMenuView(_ safeArea: UIEdgeInsets) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("MENU")
+                .font(.largeTitle.bold())
+                .foregroundColor(Color("DarkBlue"))
+        }
+        .padding(.horizontal, 15)
+        .padding(.vertical, 20)
+        .padding(.top, safeArea.top)
+        .padding(.bottom, safeArea.bottom)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .environment(\.colorScheme, .dark)
+    }
 }
-
 #Preview {
     MainTabView()
 }

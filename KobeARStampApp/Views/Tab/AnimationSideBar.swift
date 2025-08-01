@@ -46,13 +46,34 @@ struct AnimationSideBar<Content: View,MenuView: View, Background: View>: View {
                     content(safeArea)
                 }
                 .frame(width: size.width)
+                .overlay {
+                    if disablesInteraction && progress > 0 {
+                        Rectangle()
+                            .fill(.black.opacity(progress * 0.2))
+                            .onTapGesture {
+                                withAnimation(.snappy(duration: 0.3,
+                                                      extraBounce: 0)) {
+                                    reset()
+                                }
+                            }
+                    }
+                }
+                .mask {
+                    RoundedRectangle(cornerRadius: progress * cornerRadius)
+                }
+                .scaleEffect(rotatesWhenExpands ? 1 - (progress * 0.1) : 1, anchor: .trailing)
+                .rotation3DEffect(
+                    .init(degrees:  rotatesWhenExpands ? (progress * -15) : 0),
+                    axis:(x: 0.0, y:1.0, z: 0.0)
+                )
             }
             .frame(width: size.width + sideMenuWidth, height: size.height)
             .offset(x: -sideMenuWidth)
             .offset(x: offsetX)
             .contentShape(.rect)
-            .gesture(dragGesture)
+            // .gesture(dragGesture)
         }
+        .background(background)
         .ignoresSafeArea()
         .onChange(of: showMenu, initial: true) { oldValue, newValue in
             withAnimation(.snappy(duration: 0.3, extraBounce: 0)) {
@@ -71,12 +92,18 @@ struct AnimationSideBar<Content: View,MenuView: View, Background: View>: View {
             .updating($isDragging) {_, out, _ in
                 out = true
             }.onChanged { value in
-                _ = isDragging ? max(min(value.translation.width + lastOffsetX, sideMenuWidth), 0) : 0
+                guard value.startLocation.x > 10 else { return }
+                
+                let translationX = isDragging ? max(min(value.translation.width + lastOffsetX, sideMenuWidth), 0) : 0
+                offsetX = translationX
+                caluculateProgress()
             }.onEnded { value in
+                guard value.startLocation.x > 10 else {return}
+                
                 withAnimation(.snappy(duration: 0.3, extraBounce: 0)) {
                     let velocityX = value.velocity.width / 8
                     let total = velocityX + offsetX
-                        showSideBar()
+                    showSideBar()
                     if total > (sideMenuWidth * 0.5) {
                         
                     } else {
@@ -90,6 +117,7 @@ struct AnimationSideBar<Content: View,MenuView: View, Background: View>: View {
         offsetX = sideMenuWidth
         lastOffsetX = offsetX
         showMenu = true
+        caluculateProgress()
     }
     
     /// Reset's to it's Initial State
@@ -97,6 +125,12 @@ struct AnimationSideBar<Content: View,MenuView: View, Background: View>: View {
         offsetX = 0
         lastOffsetX = 0
         showMenu = false
+        caluculateProgress()
+    }
+    
+    /// offset の値を、0 ~ 1の範囲の進行度で変換する
+    func caluculateProgress() {
+        progress = max(min(offsetX / sideMenuWidth, 1), 0)
     }
 }
 
