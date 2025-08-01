@@ -10,11 +10,11 @@ import SwiftUI
 struct CustomNavigationBar: View {
     let onMenuTap: () -> Void
     let onNotificationTap: () -> Void
-    
+    @Binding var showMenu: Bool
     var body: some View {
         VStack(spacing:0) {
             HStack {
-                MenuButton(action: onMenuTap)
+                MenuButton(action: onMenuTap, showMenu: $showMenu)
                 
                 Spacer()
                 
@@ -35,31 +35,35 @@ struct CustomNavigationBar: View {
             .background(navigationBarBackground)
         }
     }
-        
-        private var navigationBarBackground: some View {
-            Color(.systemBackground)
-                .shadow(color: .black.opacity(0.1), radius: 1, x: 0, y: 1)
-        }
+    
+    private var navigationBarBackground: some View {
+        Color(.systemBackground)
+            .shadow(color: .black.opacity(0.1), radius: 1, x: 0, y: 1)
+    }
 }
 
 // MARK: - Subviews
 
 private struct MenuButton: View {
     let action: () -> Void
+    @Binding var showMenu: Bool
     
     var body: some View {
-        Button(action: action) {
-            Image(systemName: "line.3.horizontal")
+        Button(action: {
+            showMenu.toggle()
+        }) {
+            Image(systemName: showMenu ? "xmark" : "line.3.horizontal")
                 .font(.title2)
                 .foregroundColor(.primary)
                 .frame(width: 44, height: 44)
+                .contentTransition(.symbolEffect)
         }
     }
 }
 
 private struct NotificationButton: View {
     let action: () -> Void
-    @State private var hasNotification = false 
+    @State private var hasNotification = false
     
     var body: some View {
         Button(action: action) {
@@ -87,9 +91,11 @@ private struct NotificationButton: View {
 // MARK: - Previews
 
 #Preview {
-    CustomNavigationBar(
+    @Previewable @State var showMenu = false
+    
+    return CustomNavigationBar(
         onMenuTap: { print("Menu tapped") },
-        onNotificationTap: { print("Notification tapped") }
+        onNotificationTap: { print("Notification tapped") },
+        showMenu: $showMenu
     )
 }
-

@@ -27,7 +27,7 @@ struct MainTabView: View {
                     },
                     onNotificationTap: {
                         showNotification = true
-                    }
+                    }, showMenu: $showMenu
                 )
                 
                 
