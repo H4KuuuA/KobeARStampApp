@@ -45,6 +45,7 @@ struct MainTabView: View {
                 .background(Color.white)
                 .zIndex(100) // 最前面に表示
                 
+                
                 // Main Content
                 ZStack {
                     // 地図やその他のメインコンテンツ
@@ -59,6 +60,7 @@ struct MainTabView: View {
                     
                     // タブバーとARボタン（下部に配置）
                     VStack(spacing: 0) {
+                        StampDemoView()
                         Spacer()
                         ZStack {
                             CustomTabBar()
