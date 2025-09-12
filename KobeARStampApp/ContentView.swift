@@ -7,17 +7,11 @@
 
 import SwiftUI
 
-struct ContentView: View {
-    var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+    struct ContentView: View {
+        var body: some View {
+            ARCameraView() 
         }
-        .padding()
     }
-}
 
 #Preview {
     ContentView()
