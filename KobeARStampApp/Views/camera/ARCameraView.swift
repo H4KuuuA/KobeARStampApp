@@ -95,8 +95,6 @@ struct ARCameraView: View {
 
     // MARK: - UI Components
     
-    // topControls, bottomControlsはあなたのコードをほぼそのまま流用
-    // ただし、シャッターボタンのアクションのみ変更します。
     
     @ViewBuilder
     private func topControls() -> some View {

@@ -7,12 +7,15 @@
 
 import SwiftUI
 
-    struct ContentView: View {
-        var body: some View {
-            ARCameraView() 
-        }
+struct ContentView: View {
+    var body: some View {
+        HomeView()
     }
-
-#Preview {
-    ContentView()
+    
+    
 }
+#Preview {
+        ContentView()
+    }
+    
+
