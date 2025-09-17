@@ -16,6 +16,7 @@ struct MainTabView: View {
     }
     @State private var showMenu = false
     @State private var showNotification = false
+    @State var showARCameraView = false
     
     var body: some View {
         // AnimationSideBarで全体をラップ
@@ -126,6 +127,7 @@ struct MainTabView: View {
     @ViewBuilder
     func ARCameraButton() -> some View {
         Button(action: {
+            showARCameraView = true
             // カメラ起動処理
             print("🎥 AR Camera button tapped")
         }) {
@@ -150,6 +152,9 @@ struct MainTabView: View {
             }
         }
         .padding(.bottom, 23)
+        .fullScreenCover(isPresented: $showARCameraView) {
+            ARCameraView()
+        }
     }
     @ViewBuilder
     func SideMenuView(_ safeArea: UIEdgeInsets) -> some View {

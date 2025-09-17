@@ -25,7 +25,7 @@ struct ARCameraView: View {
     @State private var showPhotoSelectionSheet = false
     @State private var showPreviewAndFilterSheet = false
     @State private var finalImage: UIImage?
-    
+    @Environment(\.dismiss) private var dismiss
     
     // シャッターボタンが押されたことをARViewContainerに伝えるための「トリガー」
     private let snapshotTrigger = PassthroughSubject<Void, Never>()
@@ -98,9 +98,11 @@ struct ARCameraView: View {
     
     @ViewBuilder
     private func topControls() -> some View {
-        
+        // カメラを閉じる //
         HStack {
-            Button(action: { /* TODO: 閉じる処理 */ }) {
+            Button(action: {
+                dismiss()
+            }) {
                 Image(systemName: "xmark").font(.title2).foregroundColor(.white).frame(width: 44, height: 44).background(Color.black.opacity(0.5)).clipShape(Circle())
             }
             Spacer()
@@ -151,7 +153,10 @@ struct ARCameraView: View {
                 
 
                 Spacer()
-                Button(action: { /* TODO: カメラ切り替え */ }) {
+                
+                Button(action: {
+                   
+                }) {
                     Image(systemName: "arrow.triangle.2.circlepath").font(.title2).foregroundColor(.white)
                 }.frame(width: 60)
                 

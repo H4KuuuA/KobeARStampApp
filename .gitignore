@@ -1,34 +1,3 @@
-<<<<<<< HEAD
-# Xcode
-*.xcuserdatad
-xcuserdata/
-## Mac OS X
-.DS_Store
-## Xcode build files
-build/
-DerivedData/
-## Xcode settings
-*.pbxuser
-*.mode1v3
-*.mode2v3
-*.perspectivev3
-!default.pbxuser
-!default.mode1v3
-!default.mode2v3
-!default.perspectivev3*.xcodeproj/*
-## App packaging
-*.ipa
-*.dSYM.zip
-*.dSYM
-## Xcode Patch
-*.xcodeproj/*
-!*.xcodeproj/project.pbxproj
-!*.xcodeproj/xcshareddata/
-!*.xcworkspace/contents.xcworkspacedata
-## library
-Pods/*
-Carthage/Build/
-=======
 # macOS
 .DS_Store
 
@@ -50,18 +19,10 @@ ExportOptions.plist
 !default.perspectivev3
 xcuserdata/
 
->>>>>>> main
 ## Other
 *.moved-aside
 *.xccheckout
 *.xcscmblueprint
-<<<<<<< HEAD
-*.xcuserstate
-*.swp
-xcuserdata/
-*.moved-aside
-!.gitkeep
-=======
 
 ## We don't want any memgrap's to leak ;)
 **.memgraph
@@ -134,4 +95,3 @@ iOSInjectionProject/
 # Xcode Workspace / Scheme temporary files
 *.xcworkspace/xcshareddata/
 *.xcscheme
->>>>>>> main
