@@ -1,0 +1,576 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXContainerItemProxy section */
+		681502E32E0E5267000DCB1E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 681502CA2E0E5264000DCB1E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 681502D12E0E5264000DCB1E;
+			remoteInfo = KobeARStampApp;
+		};
+		681502ED2E0E5267000DCB1E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 681502CA2E0E5264000DCB1E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 681502D12E0E5264000DCB1E;
+			remoteInfo = KobeARStampApp;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		681502D22E0E5264000DCB1E /* KobeARStampApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KobeARStampApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		681502E22E0E5267000DCB1E /* KobeARStampAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KobeARStampAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		681502EC2E0E5267000DCB1E /* KobeARStampAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KobeARStampAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		68BFED4B2E7907AD00BCCB10 /* Exceptions for "KobeARStampApp" folder in "KobeARStampApp" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 681502D12E0E5264000DCB1E /* KobeARStampApp */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		681502D42E0E5264000DCB1E /* KobeARStampApp */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				68BFED4B2E7907AD00BCCB10 /* Exceptions for "KobeARStampApp" folder in "KobeARStampApp" target */,
+			);
+			path = KobeARStampApp;
+			sourceTree = "<group>";
+		};
+		681502E52E0E5267000DCB1E /* KobeARStampAppTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = KobeARStampAppTests;
+			sourceTree = "<group>";
+		};
+		681502EF2E0E5267000DCB1E /* KobeARStampAppUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = KobeARStampAppUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		681502CF2E0E5264000DCB1E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		681502DF2E0E5267000DCB1E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		681502E92E0E5267000DCB1E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		681502C92E0E5264000DCB1E = {
+			isa = PBXGroup;
+			children = (
+				681502D42E0E5264000DCB1E /* KobeARStampApp */,
+				681502E52E0E5267000DCB1E /* KobeARStampAppTests */,
+				681502EF2E0E5267000DCB1E /* KobeARStampAppUITests */,
+				681502D32E0E5264000DCB1E /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		681502D32E0E5264000DCB1E /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				681502D22E0E5264000DCB1E /* KobeARStampApp.app */,
+				681502E22E0E5267000DCB1E /* KobeARStampAppTests.xctest */,
+				681502EC2E0E5267000DCB1E /* KobeARStampAppUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		681502D12E0E5264000DCB1E /* KobeARStampApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 681502F62E0E5267000DCB1E /* Build configuration list for PBXNativeTarget "KobeARStampApp" */;
+			buildPhases = (
+				681502CE2E0E5264000DCB1E /* Sources */,
+				681502CF2E0E5264000DCB1E /* Frameworks */,
+				681502D02E0E5264000DCB1E /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				681502D42E0E5264000DCB1E /* KobeARStampApp */,
+			);
+			name = KobeARStampApp;
+			packageProductDependencies = (
+			);
+			productName = KobeARStampApp;
+			productReference = 681502D22E0E5264000DCB1E /* KobeARStampApp.app */;
+			productType = "com.apple.product-type.application";
+		};
+		681502E12E0E5267000DCB1E /* KobeARStampAppTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 681502F92E0E5267000DCB1E /* Build configuration list for PBXNativeTarget "KobeARStampAppTests" */;
+			buildPhases = (
+				681502DE2E0E5267000DCB1E /* Sources */,
+				681502DF2E0E5267000DCB1E /* Frameworks */,
+				681502E02E0E5267000DCB1E /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				681502E42E0E5267000DCB1E /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				681502E52E0E5267000DCB1E /* KobeARStampAppTests */,
+			);
+			name = KobeARStampAppTests;
+			packageProductDependencies = (
+			);
+			productName = KobeARStampAppTests;
+			productReference = 681502E22E0E5267000DCB1E /* KobeARStampAppTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		681502EB2E0E5267000DCB1E /* KobeARStampAppUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 681502FC2E0E5267000DCB1E /* Build configuration list for PBXNativeTarget "KobeARStampAppUITests" */;
+			buildPhases = (
+				681502E82E0E5267000DCB1E /* Sources */,
+				681502E92E0E5267000DCB1E /* Frameworks */,
+				681502EA2E0E5267000DCB1E /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				681502EE2E0E5267000DCB1E /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				681502EF2E0E5267000DCB1E /* KobeARStampAppUITests */,
+			);
+			name = KobeARStampAppUITests;
+			packageProductDependencies = (
+			);
+			productName = KobeARStampAppUITests;
+			productReference = 681502EC2E0E5267000DCB1E /* KobeARStampAppUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		681502CA2E0E5264000DCB1E /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1620;
+				LastUpgradeCheck = 1620;
+				TargetAttributes = {
+					681502D12E0E5264000DCB1E = {
+						CreatedOnToolsVersion = 16.2;
+					};
+					681502E12E0E5267000DCB1E = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = 681502D12E0E5264000DCB1E;
+					};
+					681502EB2E0E5267000DCB1E = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = 681502D12E0E5264000DCB1E;
+					};
+				};
+			};
+			buildConfigurationList = 681502CD2E0E5264000DCB1E /* Build configuration list for PBXProject "KobeARStampApp" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 681502C92E0E5264000DCB1E;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 681502D32E0E5264000DCB1E /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				681502D12E0E5264000DCB1E /* KobeARStampApp */,
+				681502E12E0E5267000DCB1E /* KobeARStampAppTests */,
+				681502EB2E0E5267000DCB1E /* KobeARStampAppUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		681502D02E0E5264000DCB1E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		681502E02E0E5267000DCB1E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		681502EA2E0E5267000DCB1E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		681502CE2E0E5264000DCB1E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		681502DE2E0E5267000DCB1E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		681502E82E0E5267000DCB1E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		681502E42E0E5267000DCB1E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 681502D12E0E5264000DCB1E /* KobeARStampApp */;
+			targetProxy = 681502E32E0E5267000DCB1E /* PBXContainerItemProxy */;
+		};
+		681502EE2E0E5267000DCB1E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 681502D12E0E5264000DCB1E /* KobeARStampApp */;
+			targetProxy = 681502ED2E0E5267000DCB1E /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		681502F42E0E5267000DCB1E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		681502F52E0E5267000DCB1E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		681502F72E0E5267000DCB1E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"KobeARStampApp/Preview Content\"";
+				DEVELOPMENT_TEAM = 9W52URV5WP;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gmail.16bonx2.KobeARStampApp5;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		681502F82E0E5267000DCB1E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"KobeARStampApp/Preview Content\"";
+				DEVELOPMENT_TEAM = 9W52URV5WP;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gmail.16bonx2.KobeARStampApp5;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		681502FA2E0E5267000DCB1E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9W52URV5WP;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gmail.16bonx2.KobeARStampAppTests5;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/KobeARStampApp.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/KobeARStampApp";
+			};
+			name = Debug;
+		};
+		681502FB2E0E5267000DCB1E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9W52URV5WP;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gmail.16bonx2.KobeARStampAppTests5;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/KobeARStampApp.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/KobeARStampApp";
+			};
+			name = Release;
+		};
+		681502FD2E0E5267000DCB1E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9W52URV5WP;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gmail.16bonx2.KobeARStampAppUITests5;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = KobeARStampApp;
+			};
+			name = Debug;
+		};
+		681502FE2E0E5267000DCB1E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9W52URV5WP;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gmail.16bonx2.KobeARStampAppUITests5;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = KobeARStampApp;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		681502CD2E0E5264000DCB1E /* Build configuration list for PBXProject "KobeARStampApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				681502F42E0E5267000DCB1E /* Debug */,
+				681502F52E0E5267000DCB1E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		681502F62E0E5267000DCB1E /* Build configuration list for PBXNativeTarget "KobeARStampApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				681502F72E0E5267000DCB1E /* Debug */,
+				681502F82E0E5267000DCB1E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		681502F92E0E5267000DCB1E /* Build configuration list for PBXNativeTarget "KobeARStampAppTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				681502FA2E0E5267000DCB1E /* Debug */,
+				681502FB2E0E5267000DCB1E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		681502FC2E0E5267000DCB1E /* Build configuration list for PBXNativeTarget "KobeARStampAppUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				681502FD2E0E5267000DCB1E /* Debug */,
+				681502FE2E0E5267000DCB1E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 681502CA2E0E5264000DCB1E /* Project object */;
+}

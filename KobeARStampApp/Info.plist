@@ -4,15 +4,7 @@
 <dict>
 	<key>NSCameraUsageDescription</key>
 	<string>AR体験のためにカメラを使用します。</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>バックグラウンドで位置情報を取得します。</string>
-	<key>NSLocationAlwaysUsageDescription</key>
-	<string>位置情報を常に利用します。</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>位置情報をアプリの使用中に利用します。</string>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>location</string>
-	</array>
+	<string>現在地を地図上に表示するために位置情報を使用します。</string>
 </dict>
 </plist>
