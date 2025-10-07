@@ -94,15 +94,20 @@ struct ARViewContainer: UIViewRepresentable {
 
         /// スナップショットを撮影する
         func takeSnapshot() {
-            arView?.snapshot(saveToHDR: false) { [weak self] image in
-                guard let self = self, let capturedImage = image else { return }
-                
-                let newAsset = PhotoAsset(image: capturedImage)
-                DispatchQueue.main.async {
-                    self.photoCollection.assets.append(newAsset)
+                    arView?.snapshot(saveToHDR: false) { [weak self] image in
+                        
+                        
+                        // snapshot完了後の処理を、ブロックごと全てメインスレッドに送る
+                        DispatchQueue.main.async {
+                            // メインスレッド内で、安全にselfとimageを展開する
+                            guard let self = self, let capturedImage = image else { return }
+                            
+                            let newAsset = PhotoAsset(image: capturedImage)
+                            self.photoCollection.assets.append(newAsset)
+                        }
+                        
+                    }
                 }
-            }
-        }
 
         func updateScale(_ newScale: Float) {
             // スケール変更ロジックは今後こちらに実装
