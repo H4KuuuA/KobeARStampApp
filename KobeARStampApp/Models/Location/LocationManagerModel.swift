@@ -61,11 +61,12 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     }
     
     private func startLocationUpdates() {
-        guard CLLocationManager.locationServicesEnabled() else { return }
-        
         // バックグラウンドスレッドで実行
-        DispatchQueue.global(qos: .userInitiated).async {
-            self.locationManager.startUpdatingLocation()
+        Task.detached(priority: .userInitiated) {
+            guard CLLocationManager.locationServicesEnabled() else { return }
+            await MainActor.run {
+                self.locationManager.startUpdatingLocation()
+            }
         }
     }
     
