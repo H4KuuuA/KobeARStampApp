@@ -163,8 +163,3 @@ struct RestrictedMapView: UIViewRepresentable {
         }
     }
 }
-
-extension Notification.Name {
-    static let customPinTapped = Notification.Name("customPinTapped")
-    static let customPinDeselected = Notification.Name("customPinDeselected")
-}
