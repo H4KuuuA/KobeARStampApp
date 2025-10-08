@@ -33,7 +33,7 @@ struct RestrictedMapView: UIViewRepresentable {
         )
         mapView.setRegion(region, animated: false)
         
-        // パン（移動）制限
+        // パン(移動)制限
         let boundary = MKMapView.CameraBoundary(coordinateRegion: region)
         mapView.setCameraBoundary(boundary, animated: false)
         
@@ -47,6 +47,14 @@ struct RestrictedMapView: UIViewRepresentable {
         let annotations = pins.map { CustomPinAnnotation(pin: $0)}
         mapView.addAnnotations(annotations)
         
+        // ★ 空白タップ検知用のジェスチャー追加
+        let tapGesture = UITapGestureRecognizer(
+            target: context.coordinator,
+            action: #selector(Coordinator.handleMapTap(_:))
+        )
+        tapGesture.delegate = context.coordinator
+        mapView.addGestureRecognizer(tapGesture)
+        
         return mapView
     }
     
@@ -54,11 +62,12 @@ struct RestrictedMapView: UIViewRepresentable {
     func updateUIView(_ uiView: MKMapView, context: Context) {
         // 状態に変更があった時の機能の追加場所
     }
+    
     func makeCoordinator() -> Coordinator {
         Coordinator()
     }
     
-    class Coordinator: NSObject, MKMapViewDelegate {
+    class Coordinator: NSObject, MKMapViewDelegate, UIGestureRecognizerDelegate {
         private var pinLastTapTimes: [String: Date] = [:]
         private let tapDebounceInterval: TimeInterval = 0.3
         
@@ -93,7 +102,7 @@ struct RestrictedMapView: UIViewRepresentable {
             let pinId = customAnnotation.customPin.id.uuidString
             let currentTime = Date()
             
-            // デバウンス処理：0.3秒以内のタップは無視
+            // デバウンス処理: 0.3秒以内のタップは無視
             if let lastTap = pinLastTapTimes[pinId],
                currentTime.timeIntervalSince(lastTap) < tapDebounceInterval {
                 print("デバウンス: \(customAnnotation.title ?? "No title") のタップが早すぎます - 無視します")
@@ -117,6 +126,41 @@ struct RestrictedMapView: UIViewRepresentable {
             mapView.deselectAnnotation(view.annotation, animated: false)
         }
         
+        // ★ マップの空白タップを検知するハンドラー
+        @objc func handleMapTap(_ gesture: UITapGestureRecognizer) {
+            guard let mapView = gesture.view as? MKMapView else { return }
+            
+            let point = gesture.location(in: mapView)
+            let coordinate = mapView.convert(point, toCoordinateFrom: mapView)
+            
+            // タップ位置にアノテーションがあるか確認
+            let mapRect = MKMapRect(
+                origin: MKMapPoint(coordinate),
+                size: MKMapSize(width: 0.1, height: 0.1)
+            )
+            
+            let annotations = mapView.annotations(in: mapRect)
+            let hasCustomPin = annotations.contains { annotation in
+                annotation is CustomPinAnnotation
+            }
+            
+            // アノテーションがない場所をタップした場合のみ通知
+            if !hasCustomPin {
+                print("マップの空白部分がタップされました")
+                NotificationCenter.default.post(
+                    name: Notification.Name.customPinDeselected,
+                    object: nil
+                )
+            }
+        }
+        
+        // ★ ジェスチャーとマップのタッチを共存させる
+        func gestureRecognizer(
+            _ gestureRecognizer: UIGestureRecognizer,
+            shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
+        ) -> Bool {
+            return true
+        }
     }
 }
 
