@@ -20,4 +20,7 @@ extension Notification.Name {
     
     /// カスタムピンの選択が解除されたことを通知
     static let customPinDeselected = Notification.Name("customPinDeselected")
+    
+    /// ローカルを通知をタップしタップしたことを通知
+    static let openPinDetail = Notification.Name("openPinDetail")
 }
