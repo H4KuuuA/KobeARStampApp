@@ -15,8 +15,12 @@ class PhotoCollection: ObservableObject {
 }
 
 struct ARCameraView: View {
-
     @StateObject private var photoCollection = PhotoCollection()
+    
+    @State private var showAlert = false
+    @State private var alertMessage = ""
+    @Binding var activeTab: TabModel
+    @ObservedObject var stampManager: StampManager
     
     @State private var arScale: Float = 1.0
     @State private var isFlashOn = false
@@ -62,10 +66,25 @@ struct ARCameraView: View {
         }
         
         
-        .onChange(of: photoCollection.assets.count) { newCount in
-            guard newCount > 0 else { return }
-            showPhotoSelectionSheet = true
-        }
+        .onChange(of: photoCollection.assets.count) {
+                    guard let newAsset = photoCollection.assets.last else { return }
+                    
+                    switch newAsset.result {
+                    case .success:
+                        // If the capture is successful, show the photo selection sheet.
+                        showPhotoSelectionSheet = true
+                        
+                    case .failure(let reason):
+                        // If the capture fails, set the alert message and trigger the alert.
+                        alertMessage = reason.localizedDescription
+                        showAlert = true
+                    }
+                }
+        .alert("撮影失敗", isPresented: $showAlert) {
+                    Button("OK", role: .cancel) { }
+                } message: {
+                    Text(alertMessage)
+                }
         
         .sheet(isPresented: $showPhotoSelectionSheet) {
             PhotoSelectionView(
@@ -182,5 +201,5 @@ struct ARCameraView: View {
 
 
 #Preview {
-    ARCameraView()
+    ARCameraView(activeTab: .constant(.home), stampManager: StampManager())
 }

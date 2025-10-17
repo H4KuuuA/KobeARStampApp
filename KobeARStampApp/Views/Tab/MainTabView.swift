@@ -153,7 +153,7 @@ struct MainTabView: View {
         }
         .padding(.bottom, 23)
         .fullScreenCover(isPresented: $showARCameraView) {
-            ARCameraView()
+            ARCameraView(activeTab: .constant(.home), stampManager: StampManager())
         }
     }
     @ViewBuilder
