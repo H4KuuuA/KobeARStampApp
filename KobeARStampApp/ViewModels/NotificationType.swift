@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftUI
 
 /// 通知のタイプを定義する列挙型
 enum NotificationType: String, Codable, CaseIterable {
@@ -26,8 +27,8 @@ enum NotificationType: String, Codable, CaseIterable {
     
     // MARK: - Display Properties
     
-    /// 通知タイプに応じたデフォルトのアイコン名（SF Symbols）
-    var defaultIcon: String {
+    /// 通知タイプに応じたアイコン名（SF Symbols）
+    var icon: String {
         switch self {
         case .pinProximity:
             return "mappin.circle.fill"
@@ -42,8 +43,8 @@ enum NotificationType: String, Codable, CaseIterable {
         }
     }
     
-    /// 通知タイプに応じたデフォルトのアプリ名
-    var defaultAppName: String {
+    /// 通知タイプに応じたアプリ名
+    var appName: String {
         switch self {
         case .pinProximity:
             return "ARスタンプ"
@@ -58,19 +59,19 @@ enum NotificationType: String, Codable, CaseIterable {
         }
     }
     
-    /// 通知タイプに応じたデフォルトの背景色（文字列で保存）
-    var defaultColorName: String {
+    /// 通知タイプに応じた背景色
+    var color: Color {
         switch self {
         case .pinProximity:
-            return "blue"
+            return .blue
         case .achievement:
-            return "yellow"
+            return .yellow
         case .system:
-            return "gray"
+            return .gray
         case .pinExit:
-            return "purple"
+            return .purple
         case .pinSwitch:
-            return "green"
+            return .green
         }
     }
 }

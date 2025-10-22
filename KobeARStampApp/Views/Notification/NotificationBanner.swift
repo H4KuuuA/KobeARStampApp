@@ -14,6 +14,7 @@ struct NotificationBanner: View {
     var timeAgo: String = "今"
     var title: String = "通知タイトル"
     var message: String = "ここに通知メッセージが表示されます"
+    var iconBackgroundColor: Color = .blue // アイコンの背景色
     var useSystemImage: Bool = true // SF Symbols使用時はtrue、画像使用時はfalse
     
     var body: some View {
@@ -31,7 +32,7 @@ struct NotificationBanner: View {
                 }
             }
             .frame(width: 40, height: 40)
-            .background(Color.blue.gradient)
+            .background(iconBackgroundColor.gradient)
             .clipShape(RoundedRectangle(cornerRadius: 10))
             
             // テキストコンテンツ
@@ -80,36 +81,38 @@ struct NotificationBanner: View {
     }
 }
 
+// MARK: - NotificationItem用の便利なイニシャライザ
+extension NotificationBanner {
+    /// NotificationItemから直接バナーを作成
+    init(notification: NotificationItem) {
+        self.appIcon = notification.type.icon
+        self.appName = notification.type.appName
+        self.timeAgo = notification.timeAgoText
+        self.title = notification.title
+        self.message = notification.message
+        self.iconBackgroundColor = notification.type.color
+        self.useSystemImage = true
+    }
+}
+
 // プレビュー用
 #Preview {
     VStack(spacing: 20) {
-        // 使用例1: SF Symbolsを使用
-        NotificationBanner(
-            appIcon: "bell.fill",
-            appName: "リマインダー",
-            timeAgo: "今",
-            title: "タスクの期限",
-            message: "プロジェクトの提出期限が近づいています",
-            useSystemImage: true
-        )
+        // NotificationItemから作成
+        NotificationBanner(notification: .sampleProximity)
         
-        // 使用例2: カスタム内容
-        NotificationBanner(
-            appIcon: "envelope.fill",
-            appName: "メール",
-            timeAgo: "1分前",
-            title: "新着メッセージ",
-            message: "山田太郎さんから新しいメッセージが届いています。内容を確認してください。",
-            useSystemImage: true
-        )
+        NotificationBanner(notification: .sampleAchievement)
         
-        // 使用例3: 長いメッセージ
+        NotificationBanner(notification: .sampleSystem)
+        
+        // カスタム作成
         NotificationBanner(
-            appIcon: "message.fill",
-            appName: "メッセージ",
-            timeAgo: "5分前",
-            title: "佐藤花子",
-            message: "こんにちは！明日の会議の時間が変更になりました。詳細はメールで送りますね。",
+            appIcon: "heart.fill",
+            appName: "ヘルスケア",
+            timeAgo: "2時間前",
+            title: "目標達成",
+            message: "本日の歩数目標を達成しました！",
+            iconBackgroundColor: .pink,
             useSystemImage: true
         )
     }

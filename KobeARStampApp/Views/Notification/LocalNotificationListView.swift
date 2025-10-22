@@ -6,46 +6,151 @@
 //
 
 import SwiftUI
+import UserNotifications
 
 struct LocalNotificationListView: View {
-    // サンプルデータ（後で実際のデータに置き換え可能）
-    let sampleNotifications = [
-        ("bell.fill", "リマインダー", "今", "タスクの期限", "プロジェクトの提出期限が近づいています"),
-        ("envelope.fill", "メール", "1分前", "新着メッセージ", "山田太郎さんから新しいメッセージが届いています"),
-        ("message.fill", "メッセージ", "5分前", "佐藤花子", "こんにちは！明日の会議の時間が変更になりました"),
-        ("cart.fill", "ショッピング", "10分前", "注文完了", "ご注文が正常に処理されました"),
-        ("calendar", "カレンダー", "30分前", "イベント開始", "1時間後にミーティングが始まります"),
-        ("star.fill", "お気に入り", "1時間前", "新着情報", "お気に入りの店舗から新商品が入荷しました"),
-        ("heart.fill", "ヘルスケア", "2時間前", "目標達成", "本日の歩数目標を達成しました！"),
-        ("photo.fill", "写真", "3時間前", "思い出", "1年前の今日の写真を見てみましょう"),
-        ("music.note", "ミュージック", "5時間前", "プレイリスト", "あなたへのおすすめプレイリストを更新しました"),
-        ("bell.badge.fill", "通知", "昨日", "システム", "アプリのアップデートが利用可能です")
-    ]
+    // NotificationManagerを取得
+    @ObservedObject private var notificationManager = NotificationManager.shared
+    
+    // 削除確認アラート用
+    @State private var showingDeleteAllAlert = false
     
     var body: some View {
         NavigationStack {
-            ScrollView(.vertical) {
-                VStack(spacing: 12) {
-                    ForEach(Array(sampleNotifications.enumerated()), id: \.offset) { index, notification in
-                        NotificationBanner(
-                            appIcon: notification.0,
-                            appName: notification.1,
-                            timeAgo: notification.2,
-                            title: notification.3,
-                            message: notification.4,
-                            useSystemImage: true
-                        )
-                        .swipeActions {
-                            Action(symbolImage: "trash.fill", tint: .white, background: .red) { resetPosition in
-                                // 削除処理をここに記述
-                                resetPosition.toggle()
+            Group {
+                if notificationManager.notifications.isEmpty {
+                    // 通知がない場合
+                    emptyStateView
+                } else {
+                    // 通知リスト
+                    notificationListView
+                }
+            }
+            .navigationTitle("通知")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    if !notificationManager.notifications.isEmpty {
+                        Menu {
+                            Button(role: .destructive) {
+                                showingDeleteAllAlert = true
+                            } label: {
+                                Label("全て削除", systemImage: "trash")
                             }
+                            
+                            #if DEBUG
+                            Divider()
+                            
+                            Button {
+                                notificationManager.addSampleNotifications()
+                            } label: {
+                                Label("サンプル追加", systemImage: "plus.circle")
+                            }
+                            #endif
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
                         }
                     }
                 }
-                .padding(15)
             }
-            .navigationTitle(Text("通知"))
+            .alert("全ての通知を削除", isPresented: $showingDeleteAllAlert) {
+                Button("キャンセル", role: .cancel) { }
+                Button("削除", role: .destructive) {
+                    withAnimation {
+                        notificationManager.removeAllNotifications()
+                    }
+                }
+            } message: {
+                Text("全ての通知を削除してもよろしいですか？この操作は取り消せません。")
+            }
+            .onAppear {
+                // ✅ 開いたタイミングではバッジのみクリアする
+                clearBadge()
+            }
+            .onDisappear {
+                // ✅ 閉じたタイミングで既読判定を実行
+                notificationManager.markAllAsViewed()
+            }
+        }
+    }
+    
+    // MARK: - Notification List View
+    
+    private var notificationListView: some View {
+        ScrollView(.vertical) {
+            VStack(spacing: 12) {
+                ForEach(notificationManager.notifications) { notification in
+                    NotificationBanner(
+                        appIcon: notification.type.icon,
+                        appName: notification.type.appName,
+                        timeAgo: notification.timeAgoText,
+                        title: notification.title,
+                        message: notification.message,
+                        useSystemImage: true
+                    )
+                    //  新着判定によって透明度を制御
+                    .opacity(notificationManager.isNew(notification) ? 1.0 : 0.5)
+                    .swipeActions {
+                        Action(
+                            symbolImage: "trash.fill",
+                            tint: .white,
+                            background: .red
+                        ) { resetPosition in
+                            withAnimation {
+                                notificationManager.removeNotification(id: notification.id)
+                            }
+                            resetPosition.toggle()
+                        }
+                    }
+                }
+            }
+            .padding(15)
+        }
+    }
+    
+    // MARK: - Empty State View
+    
+    private var emptyStateView: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "bell.slash.fill")
+                .font(.system(size: 60))
+                .foregroundColor(.gray)
+            
+            Text("通知はありません")
+                .font(.title2)
+                .fontWeight(.semibold)
+            
+            Text("スポットに近づくと通知が届きます")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+            
+            #if DEBUG
+            Button {
+                notificationManager.addSampleNotifications()
+            } label: {
+                Label("サンプル通知を追加", systemImage: "plus.circle.fill")
+                    .padding()
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
+            }
+            .padding(.top, 20)
+            #endif
+        }
+        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    // MARK: - Badge Management
+    
+    /// アプリアイコンのバッジをクリア
+    private func clearBadge() {
+        UNUserNotificationCenter.current().setBadgeCount(0) { error in
+            if let error = error {
+                print("⚠️ バッジのクリアに失敗: \(error.localizedDescription)")
+            } else {
+                print("✅ バッジをクリアしました")
+            }
         }
     }
 }

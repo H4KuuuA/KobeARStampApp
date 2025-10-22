@@ -9,8 +9,7 @@ import Foundation
 import Combine
 
 /// アプリ内通知を管理するクラス
-@MainActor
-class NotificationManager: ObservableObject {
+class NotificationManager: ObservableObject, @unchecked Sendable {
     // MARK: - Singleton
     static let shared = NotificationManager()
     
@@ -19,13 +18,30 @@ class NotificationManager: ObservableObject {
     /// 通知のリスト（新しい順）
     @Published private(set) var notifications: [NotificationItem] = []
     
+    /// 新着通知があるかどうか
+    @Published private(set) var hasUnviewedNotifications: Bool = false
+    
     // MARK: - Private Properties
     
     /// 保存するファイル名
     private let fileName = "notifications.json"
     
+    /// 最終閲覧時刻の保存キー
+    private let lastViewedDateKey = "lastViewedNotificationDate"
+    
     /// 保存する最大通知数
     private let maxNotifications = 100
+    
+    /// 最終閲覧時刻
+    private var lastViewedDate: Date? {
+        get {
+            UserDefaults.standard.object(forKey: lastViewedDateKey) as? Date
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: lastViewedDateKey)
+            updateUnviewedStatus()
+        }
+    }
     
     /// データ保存用のURL
     private var fileURL: URL? {
@@ -49,55 +65,75 @@ class NotificationManager: ObservableObject {
     /// 通知を追加
     /// - Parameter notification: 追加する通知
     func addNotification(_ notification: NotificationItem) {
-        // 先頭に追加（新しい順）
-        notifications.insert(notification, at: 0)
-        
-        // 最大数を超えたら古いものを削除
-        if notifications.count > maxNotifications {
-            notifications = Array(notifications.prefix(maxNotifications))
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            // 先頭に追加（新しい順）
+            self.notifications.insert(notification, at: 0)
+            
+            // 最大数を超えたら古いものを削除
+            if self.notifications.count > self.maxNotifications {
+                self.notifications = Array(self.notifications.prefix(self.maxNotifications))
+            }
+            
+            self.saveNotifications()
+            self.updateUnviewedStatus()
+            
+            print("📬 通知を追加: \(notification.title)")
         }
-        
-        saveNotifications()
-        
-        print("📬 通知を追加: \(notification.title)")
     }
     
     /// 複数の通知を一括追加
     /// - Parameter notifications: 追加する通知の配列
     func addNotifications(_ newNotifications: [NotificationItem]) {
-        for notification in newNotifications {
-            notifications.insert(notification, at: 0)
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            for notification in newNotifications {
+                self.notifications.insert(notification, at: 0)
+            }
+            
+            if self.notifications.count > self.maxNotifications {
+                self.notifications = Array(self.notifications.prefix(self.maxNotifications))
+            }
+            
+            self.saveNotifications()
+            self.updateUnviewedStatus()
         }
-        
-        if notifications.count > maxNotifications {
-            notifications = Array(notifications.prefix(maxNotifications))
-        }
-        
-        saveNotifications()
     }
     
     /// 通知を削除
     /// - Parameter id: 削除する通知のID
     func removeNotification(id: String) {
-        notifications.removeAll { $0.id == id }
-        saveNotifications()
-        
-        print("🗑️ 通知を削除: ID \(id)")
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.notifications.removeAll { $0.id == id }
+            self.saveNotifications()
+            self.updateUnviewedStatus()
+            
+            print("🗑️ 通知を削除: ID \(id)")
+        }
     }
     
     /// 複数の通知を削除
     /// - Parameter ids: 削除する通知のID配列
     func removeNotifications(ids: [String]) {
-        notifications.removeAll { ids.contains($0.id) }
-        saveNotifications()
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.notifications.removeAll { ids.contains($0.id) }
+            self.saveNotifications()
+            self.updateUnviewedStatus()
+        }
     }
     
     /// 全ての通知を削除
     func removeAllNotifications() {
-        notifications.removeAll()
-        saveNotifications()
-        
-        print("🗑️ 全ての通知を削除")
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.notifications.removeAll()
+            self.saveNotifications()
+            self.updateUnviewedStatus()
+            
+            print("🗑️ 全ての通知を削除")
+        }
     }
     
     /// 特定のタイプの通知を取得
@@ -172,11 +208,42 @@ class NotificationManager: ObservableObject {
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
             notifications = try decoder.decode([NotificationItem].self, from: data)
+            updateUnviewedStatus()
             print("📂 通知を読み込みました: \(notifications.count)件")
         } catch {
             print("⚠️ 通知の読み込みに失敗: \(error.localizedDescription)")
             notifications = []
+            updateUnviewedStatus()
         }
+    }
+    
+    /// 未読状態を更新
+    private func updateUnviewedStatus() {
+        // 未読の判定: 最終閲覧日時より新しい通知がある場合に true
+        if notifications.isEmpty {
+            hasUnviewedNotifications = false
+            return
+        }
+        if let last = lastViewedDate {
+            hasUnviewedNotifications = notifications.contains { $0.timestamp > last }
+        } else {
+            // 最終閲覧日時が未設定の場合、通知が1件でもあれば未読とみなす
+            hasUnviewedNotifications = !notifications.isEmpty
+        }
+    }
+
+    /// すべての通知を既読にする（最終閲覧日時を現在時刻に更新）
+    func markAllAsViewed() {
+        lastViewedDate = Date()
+    }
+    
+    /// 通知が新着かどうかを判定
+    func isNew(_ notification: NotificationItem) -> Bool {
+        guard let lastViewedDate = lastViewedDate else {
+            // 最終閲覧日時が未設定なら全て新着扱い
+            return true
+        }
+        return notification.timestamp > lastViewedDate
     }
     
     // MARK: - Debug Methods
@@ -197,7 +264,7 @@ class NotificationManager: ObservableObject {
             .mapValues { $0.count }
         print("  - タイプ別:")
         for (type, count) in typeCount {
-            print("    - \(type.defaultAppName): \(count)件")
+            print("    - \(type.appName): \(count)件")
         }
     }
 }
