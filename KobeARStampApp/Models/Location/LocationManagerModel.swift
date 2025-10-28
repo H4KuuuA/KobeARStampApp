@@ -23,15 +23,22 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
         locationManager.distanceFilter = 10
         
-        // アプリ起動時に自動で許可をリクエスト
-        requestLocationPermission()
+        // デリゲートメソッドで処理するため、ここでは権限チェックのみ
+        checkInitialAuthorizationStatus()
     }
     
-    private func requestLocationPermission() {
-        switch locationManager.authorizationStatus {
+    private func checkInitialAuthorizationStatus() {
+        let status = locationManager.authorizationStatus
+        
+        switch status {
         case .notDetermined:
-            locationManager.requestWhenInUseAuthorization()
+            // 権限が未決定の場合のみリクエスト
+            // デリゲートメソッドで結果を受け取る
+            DispatchQueue.global(qos: .userInitiated).async {
+                self.locationManager.requestWhenInUseAuthorization()
+            }
         case .authorizedWhenInUse, .authorizedAlways:
+            // すでに許可されている場合は位置情報の更新を開始
             startLocationUpdates()
         case .denied, .restricted:
             print("位置情報の使用が拒否されています")
@@ -54,8 +61,13 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     }
     
     private func startLocationUpdates() {
-        guard CLLocationManager.locationServicesEnabled() else { return }
-        locationManager.startUpdatingLocation()
+        // バックグラウンドスレッドで実行
+        Task.detached(priority: .userInitiated) {
+            guard CLLocationManager.locationServicesEnabled() else { return }
+            await MainActor.run {
+                self.locationManager.startUpdatingLocation()
+            }
+        }
     }
     
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
