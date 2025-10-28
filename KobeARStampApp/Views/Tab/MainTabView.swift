@@ -1,10 +1,3 @@
-//
-//  TabView.swift
-//  KobeARStampApp
-//
-//  Created by 大江悠都 on 2025/06/30.
-//
-
 import SwiftUI
 
 struct MainTabView: View {
@@ -79,6 +72,9 @@ struct MainTabView: View {
                     }
                     .zIndex(99) // タブバーも前面に表示
                 }
+            }
+            .sheet(isPresented: $showNotification) {
+                LocalNotificationListView()
             }
         } menuView: { safeArea in
             SideMenuView(safeArea)

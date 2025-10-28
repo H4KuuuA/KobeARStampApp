@@ -11,6 +11,10 @@ struct CustomNavigationBar: View {
     let onMenuTap: () -> Void
     let onNotificationTap: () -> Void
     @Binding var showMenu: Bool
+    
+    // NotificationManagerを監視
+    @ObservedObject private var notificationManager = NotificationManager.shared
+    
     var body: some View {
         VStack(spacing:0) {
             HStack {
@@ -27,7 +31,10 @@ struct CustomNavigationBar: View {
                 
                 Spacer()
                 
-                NotificationButton(action: onNotificationTap)
+                NotificationButton(
+                    action: onNotificationTap,
+                    hasNotification: notificationManager.hasUnviewedNotifications
+                )
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
@@ -66,7 +73,7 @@ private struct MenuButton: View {
 
 private struct NotificationButton: View {
     let action: () -> Void
-    @State private var hasNotification = false
+    let hasNotification: Bool
     
     var body: some View {
         Button(action: action) {
@@ -85,7 +92,7 @@ private struct NotificationButton: View {
     
     private var notificationBadge: some View {
         Circle()
-            .fill(Color.red)
+            .fill(Color.blue)
             .frame(width: 8, height: 8)
             .offset(x: 8, y: -8)
     }
