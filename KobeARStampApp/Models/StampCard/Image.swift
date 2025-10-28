@@ -8,7 +8,7 @@
 import SwiftUI
 
 /// Video -> Image
-struct Image: Identifiable, Hashable {
+struct SampleImage: Identifiable, Hashable {
     var id: UUID = .init()
     var image: UIImage
     // 将来変更
@@ -18,12 +18,12 @@ struct Image: Identifiable, Hashable {
 
 /// Sample Image
 let file = [
-    Image(image: UIImage(named: "hatkobe_1")!),
-    Image(image: UIImage(named: "hatkobe_2")!),
-    Image(image: UIImage(named: "hatkobe_3")!),
-    Image(image: UIImage(named: "hatkobe_4")!),
-    Image(image: UIImage(named: "hatkobe_5")!),
-    Image(image: UIImage(named: "hatkobe_6")!),
+    SampleImage(image: UIImage(named: "hatkobe_1")!),
+    SampleImage(image: UIImage(named: "hatkobe_2")!),
+    SampleImage(image: UIImage(named: "hatkobe_3")!),
+    SampleImage(image: UIImage(named: "hatkobe_4")!),
+    SampleImage(image: UIImage(named: "hatkobe_5")!),
+    SampleImage(image: UIImage(named: "hatkobe_6")!),
 ]
 
 
