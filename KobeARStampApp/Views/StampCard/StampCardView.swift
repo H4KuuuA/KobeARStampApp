@@ -11,17 +11,22 @@ struct StampCardView: View {
     var sharedModel = SharedModel()
     var body: some View {
         @Bindable var bindings = sharedModel
-        NavigationStack {
-            VStack(spacing: 0) {
-                /// Header View
-                HeaderView()
-                ScrollView(.vertical) {
-                    LazyVGrid(columns: Array(repeating: GridItem(spacing: 10), count: 2),
-                              spacing: 10) {
-                        ForEach($bindings.sampleimages) { $sampleimage in
-                            /// ImageCardView
-                            ImageCardView(sampleimage: $sampleimage)
-                                .environment(sharedModel)
+        GeometryReader {
+            let screenSize: CGSize = $0.size
+            
+            NavigationStack {
+                VStack(spacing: 0) {
+                    /// Header View
+                    HeaderView()
+                    ScrollView(.vertical) {
+                        LazyVGrid(columns: Array(repeating: GridItem(spacing: 10), count: 2),
+                                  spacing: 10) {
+                            ForEach($bindings.sampleimages) { $sampleimage in
+                                /// ImageCardView
+                                ImageCardView(screenSize: screenSize , sampleimage: $sampleimage)
+                                    .environment(sharedModel)
+                                    .frame(height: screenSize.height * 0.4)
+                            }
                         }
                     }
                 }
@@ -58,10 +63,41 @@ struct StampCardView: View {
 }
 
 struct ImageCardView: View {
+    var screenSize: CGSize
     @Environment(SharedModel.self) private var sharedModel
     @Binding var sampleimage: SampleImage
     var body: some View {
-        Text("Hello, world!")
+        GeometryReader {
+            let size = $0.size
+            
+            if let uiImage = sampleimage.image {
+                // ① URL画像が読み込まれた場合
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: size.width, height: size.height)
+                    .clipped()
+                    .cornerRadius(15)
+            } else if let assetName = sampleimage.assetName,
+                      let assetImage = UIImage(named: assetName) {
+                // ② URL画像がない場合はAssets画像
+                Image(uiImage: assetImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: size.width, height: size.height)
+                    .clipped()
+                    .cornerRadius(15)
+            } else {
+                RoundedRectangle(cornerRadius: 15)
+                    .fill(.fill)
+                    .task(priority: .high){
+                        // URLがある場合のみ非同期読み込み
+                        if sampleimage.fileURL != nil {
+                            await sharedModel.loadImage(for: $sampleimage)
+                        }
+                    }
+            }
+        }
     }
 }
 

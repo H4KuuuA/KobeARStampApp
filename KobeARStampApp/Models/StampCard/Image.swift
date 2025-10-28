@@ -9,11 +9,11 @@ import SwiftUI
 
 /// Video -> Image
 struct SampleImage: Identifiable, Hashable {
-    var id: UUID = .init()
-    var image: UIImage
+    var id = UUID()
+    var image: UIImage?
     // 将来変更
-    // var fileURL: URL
-    var tumbnail: UIImage?
+    var fileURL: URL?
+    var assetName: String?
     }
 
 /// Sample Image
