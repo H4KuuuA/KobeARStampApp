@@ -41,7 +41,9 @@ struct StampCardView: View {
                     }
                 }
                 .navigationDestination(for: SampleImage.self) { sampleImage in
-                    
+                    StampCardDetailView(sampleImage: sampleImage, animation: animation)
+                        .environment(sharedModel)
+                        .toolbarVisibility(.hidden, for: .navigationBar)
                 }
             }
         }
