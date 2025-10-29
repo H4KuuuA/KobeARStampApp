@@ -9,6 +9,7 @@ import SwiftUI
 
 struct StampCardView: View {
     var sharedModel = SharedModel()
+    @Namespace private var animation
     var body: some View {
         @Bindable var bindings = sharedModel
         GeometryReader {
@@ -23,12 +24,24 @@ struct StampCardView: View {
                                   spacing: 10) {
                             ForEach($bindings.sampleimages) { $sampleimage in
                                 /// ImageCardView
-                                ImageCardView(screenSize: screenSize , sampleimage: $sampleimage)
-                                    .environment(sharedModel)
-                                    .frame(height: screenSize.height * 0.4)
+                                NavigationLink(value: sampleimage) {
+                                    ImageCardView(screenSize: screenSize , sampleimage: $sampleimage)
+                                        .environment(sharedModel)
+                                        .frame(height: screenSize.height * 0.4)
+                                        .matchedTransitionSource(id: sampleimage, in: animation) {
+                                            $0
+                                                .background(.clear)
+                                                .clipShape(.rect(cornerRadius: 15))
+                                        }
+                                }
+                                .buttonStyle(CustomButtonStyle())
                             }
                         }
+                                  .padding(15)
                     }
+                }
+                .navigationDestination(for: SampleImage.self) { sampleImage in
+                    
                 }
             }
         }
@@ -101,6 +114,12 @@ struct ImageCardView: View {
     }
 }
 
+/// Custom Buitton Style
+struct CustomButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+    }
+}
 #Preview {
     StampCardView()
 }
