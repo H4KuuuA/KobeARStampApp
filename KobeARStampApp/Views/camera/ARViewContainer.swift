@@ -12,6 +12,8 @@ import Combine
 
 struct ARViewContainer: UIViewRepresentable {
     
+    let spot: Spot
+    
     @Binding var scale: Float
     let snapshotTrigger: PassthroughSubject<Void, Never>
     @ObservedObject var photoCollection: PhotoCollection
@@ -37,7 +39,7 @@ struct ARViewContainer: UIViewRepresentable {
     }
     
     func makeCoordinator() -> Coordinator {
-        Coordinator(snapshotTrigger: snapshotTrigger, photoCollection: photoCollection)
+        Coordinator(spot: spot, snapshotTrigger: snapshotTrigger, photoCollection: photoCollection)
     }
 
     // MARK: - Coordinator
@@ -47,13 +49,16 @@ struct ARViewContainer: UIViewRepresentable {
         var cancellables = Set<AnyCancellable>()
         private var lastPlacedAnchor: AnchorEntity?
         
+        let spot: Spot
+        
         let snapshotTrigger: PassthroughSubject<Void, Never>
         let photoCollection: PhotoCollection
 
-        init(snapshotTrigger: PassthroughSubject<Void, Never>, photoCollection: PhotoCollection) {
-            self.snapshotTrigger = snapshotTrigger
-            self.photoCollection = photoCollection
-        }
+        init(spot: Spot, snapshotTrigger: PassthroughSubject<Void, Never>, photoCollection: PhotoCollection) {
+                    self.spot = spot
+                    self.snapshotTrigger = snapshotTrigger
+                    self.photoCollection = photoCollection
+                }
         
         @objc func handleTap(_ recognizer: UITapGestureRecognizer) {
             guard let arView = arView,

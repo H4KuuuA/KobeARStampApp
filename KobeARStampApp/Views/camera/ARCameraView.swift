@@ -17,6 +17,8 @@ class PhotoCollection: ObservableObject {
 struct ARCameraView: View {
     @StateObject private var photoCollection = PhotoCollection()
     
+    let spot: Spot
+    
     @State private var showAlert = false
     @State private var alertMessage = ""
     @Binding var activeTab: TabModel
@@ -44,10 +46,11 @@ struct ARCameraView: View {
         ZStack {
             
             // ARViewContainerにトリガーと写真コレクションを渡す
-            ARViewContainer(scale: $arScale,
-                            snapshotTrigger: snapshotTrigger,
-                            photoCollection: photoCollection)
-                .ignoresSafeArea()
+            ARViewContainer(spot: spot, // Replace <#Spot#> with the actual `spot` variable
+                                        scale: $arScale,
+                                        snapshotTrigger: snapshotTrigger,
+                                        photoCollection: photoCollection)
+                            .ignoresSafeArea()
             
 
             VStack {
@@ -201,5 +204,10 @@ struct ARCameraView: View {
 
 
 #Preview {
-    ARCameraView(activeTab: .constant(.home), stampManager: StampManager())
+    let previewSpot = StampManager().allSpots.first ?? Spot(id: "preview-spot", name: "Preview Spot", placeholderImageName: "questionmark.circle", modelName: "box.usdz")
+    
+    // Corrected the argument order: activeTab must come before stampManager
+    ARCameraView(spot: previewSpot,
+                 activeTab: .constant(.home), // Moved activeTab before stampManager
+                 stampManager: StampManager())
 }

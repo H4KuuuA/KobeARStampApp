@@ -7,90 +7,80 @@
 
 import SwiftUI
 
-/// A class to manage saving, loading, and holding stamp data.
 class StampManager: ObservableObject {
-    /// The array of collected stamps, published for UI updates.
-    @Published var stamps: [Stamp] = []
+    /// The source of truth for all available spots in the rally.
+    
+    let allSpots: [Spot] = [
+        Spot(id: "kobe-port-tower", name: "神戸ポートタワー", placeholderImageName: "spot_placeholder_1", modelName: "port_tower.usdz"),
+        Spot(id: "meriken-park", name: "メリケンパーク", placeholderImageName: "spot_placeholder_2", modelName: "meriken_park.usdz"),
+        Spot(id: "nankinmachi", name: "南京町", placeholderImageName: "spot_placeholder_3", modelName: "nankinmachi.usdz"),
+        Spot(id: "ijinkan", name: "異人館", placeholderImageName: "spot_placeholder_4", modelName: "ijinkan.usdz"),
+        // ... more spots
+    ]
+    
+    
+    @Published var acquiredStamps: [String: AcquiredStamp] = [:]
+    
+    // (The rest of the file remains the same)
+    // ...
+    // ...
+    // ...
+    
+    var acquiredStampCount: Int { acquiredStamps.count }
+    var totalSpotCount: Int { allSpots.count }
+    var progress: Float {
+        guard totalSpotCount > 0 else { return 0 }
+        return Float(acquiredStampCount) / Float(totalSpotCount)
+    }
+    var progressText: String { "\(acquiredStampCount) / \(totalSpotCount)" }
     
     private let stampsDirectoryURL: URL
     private let stampsJSONURL: URL
     
     init() {
-        // Get the URL for the user's documents directory.
         let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        
-        // Create a dedicated directory for stamp images.
         stampsDirectoryURL = documentsURL.appendingPathComponent("StampImages")
-        // Define the URL for the JSON file that stores the list of stamps.
         stampsJSONURL = documentsURL.appendingPathComponent("stamps.json")
-        
-        // Create the directory if it doesn't exist.
         try? FileManager.default.createDirectory(at: stampsDirectoryURL, withIntermediateDirectories: true, attributes: nil)
-        
-        // Load existing stamps when the manager is initialized.
         loadStamps()
     }
     
-    /// Adds a new stamp by saving the image and updating the stamp list.
-    /// - Parameter image: The UIImage to be saved as a stamp.
-    func addStamp(image: UIImage) {
-        // Generate a unique filename for the image.
-        let fileName = UUID().uuidString + ".jpeg"
+    func addStamp(image: UIImage, for spot: Spot) {
+        guard acquiredStamps[spot.id] == nil else { return }
+        let fileName = spot.id + ".jpeg"
         let fileURL = stampsDirectoryURL.appendingPathComponent(fileName)
-        
-        // Convert the image to JPEG data.
-        guard let data = image.jpegData(compressionQuality: 0.8) else {
-            print("Failed to convert image to JPEG data.")
-            return
-        }
-        
+        guard let data = image.jpegData(compressionQuality: 0.8) else { return }
         do {
-            // Write the image data to the file URL.
             try data.write(to: fileURL)
-            
-            // Create a new Stamp object.
-            let newStamp = Stamp(id: UUID(), imageFileName: fileName, acquiredDate: Date())
-            
-            // Add the new stamp to the array and save the updated list.
-            stamps.append(newStamp)
+            let newStamp = AcquiredStamp(id: UUID(), spotID: spot.id, imageFileName: fileName, acquiredDate: Date())
+            acquiredStamps[spot.id] = newStamp
             saveStamps()
-            print("スタンプを保存しました: \(fileName)")
         } catch {
-            print("画像の保存に失敗しました: \(error.localizedDescription)")
+            print("Failed to save image: \(error.localizedDescription)")
         }
     }
     
-    /// Saves the current array of stamps to a JSON file.
     private func saveStamps() {
         do {
-            let encoder = JSONEncoder()
-            let data = try encoder.encode(stamps)
+            let data = try JSONEncoder().encode(acquiredStamps)
             try data.write(to: stampsJSONURL)
         } catch {
-            print("スタンプリストの保存に失敗しました: \(error.localizedDescription)")
+            print("Failed to save stamp list: \(error.localizedDescription)")
         }
     }
     
-    /// Loads the array of stamps from the JSON file.
     private func loadStamps() {
         guard let data = try? Data(contentsOf: stampsJSONURL) else { return }
-        
         do {
-            let decoder = JSONDecoder()
-            stamps = try decoder.decode([Stamp].self, from: data)
+            acquiredStamps = try JSONDecoder().decode([String: AcquiredStamp].self, from: data)
         } catch {
-            print("スタンプリストの読み込みに失敗しました: \(error.localizedDescription)")
+            print("Failed to load stamp list: \(error.localizedDescription)")
         }
     }
     
-    /// Retrieves a UIImage for a given stamp.
-    /// - Parameter stamp: The stamp for which to load the image.
-    /// - Returns: A UIImage if found, otherwise nil.
-    func getImage(for stamp: Stamp) -> UIImage? {
+    func getImage(for stamp: AcquiredStamp) -> UIImage? {
         let fileURL = stampsDirectoryURL.appendingPathComponent(stamp.imageFileName)
-        guard let data = try? Data(contentsOf: fileURL) else {
-            return nil
-        }
+        guard let data = try? Data(contentsOf: fileURL) else { return nil }
         return UIImage(data: data)
     }
 }
