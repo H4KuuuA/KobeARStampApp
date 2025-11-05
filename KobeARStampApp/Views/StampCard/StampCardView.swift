@@ -10,7 +10,7 @@ import SwiftUI
 struct StampCardView: View {
     var sharedModel = SharedModel()
     @Namespace private var animation
-    @State private var progress: CGFloat = 7  // 進捗データ（必要に応じて変更）
+    @State private var progress: CGFloat = 7  // 進捗データ(必要に応じて変更)
     @State private var selectedEvent: String = "みんなで!アート探検 in HAT神戸"
     
     // イベントのリスト
@@ -27,58 +27,91 @@ struct StampCardView: View {
             let screenSize: CGSize = $0.size
             
             NavigationStack {
-                VStack(spacing: 0) {
-                    
-                    ScrollView(.vertical) {
-                        VStack(spacing: 64) {
-                            /// Event Selector (右上)
-                            HStack {
-                                Spacer()
-                                EventSelectorMenu()
-                            }
+                ScrollView(.vertical) {
+                    VStack(spacing: 32) {
+                        /// Event Selector (右上)
+                        HStack {
+                            Spacer()
+                            EventSelectorMenu()
+                        }
+                        
+                        /// Progress Bar (真ん中)
+                        ZStack {
+                            StampProgressBar(
+                                progress: progress,
+                                size: 150,
+                                showPercentage: false
+                            )
                             
-                            /// Progress Bar (真ん中)
-                            ZStack {
-                                StampProgressBar(
-                                    progress: progress,
-                                    size: 150,
-                                    showPercentage: false
+                            // 中央に円形の画像を表示
+                            Image("hatkobe_1")
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 120, height: 120)
+                                .clipShape(Circle())
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color.white, lineWidth: 2)
                                 )
+                        }
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.top, 32)
+                        .padding(.bottom, 8)
+                        
+                        VStack {
+                            Text("取得スタンプ数 ")
+                                .font(.system(size: 20, weight: .bold, design: .rounded))
+                                .foregroundColor(Color(red: 0.1, green: 0.1, blue: 0.1))
+                            HStack{
+                                Text("\(Int(progress))")
+                                    .font(.system(size: 40, weight: .bold, design: .rounded))
+                                    .foregroundColor(Color("DarkBlue"))
                                 
-                                // 中央に円形の画像を表示
-                                Image("hatkobe_1")
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 120, height: 120)
-                                    .clipShape(Circle())
-                                    .overlay(
-                                        Circle()
-                                            .stroke(Color.white, lineWidth: 2)
-                                    )
+                                Text("/10")
+                                    .font(.system(size: 40, weight: .bold, design: .rounded))
+                                    .foregroundColor(Color(red: 0.1, green: 0.1, blue: 0.1))
                             }
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            
-                            /// Stamp Cards Grid
-                            LazyVGrid(columns: Array(repeating: GridItem(spacing: 10), count: 2),
-                                      spacing: 10) {
-                                ForEach($bindings.sampleimages) { $sampleimage in
-                                    /// ImageCardView
-                                    NavigationLink(value: sampleimage) {
-                                        ImageCardView(screenSize: screenSize , sampleimage: $sampleimage)
-                                            .environment(sharedModel)
-                                            .frame(height: screenSize.height * 0.4)
-                                            .contentShape(Rectangle())
-                                            .matchedTransitionSource(id: sampleimage, in: animation) {
-                                                $0
-                                                    .background(.clear)
-                                            }
-                                            .buttonStyle(CustomButtonStyle())
-                                    }
+                        }
+                        
+                        /// Stamp Cards Grid
+                        LazyVGrid(columns: Array(repeating: GridItem(spacing: 10), count: 2),
+                                  spacing: 10) {
+                            ForEach($bindings.sampleimages) { $sampleimage in
+                                /// ImageCardView
+                                NavigationLink(value: sampleimage) {
+                                    ImageCardView(screenSize: screenSize , sampleimage: $sampleimage)
+                                        .environment(sharedModel)
+                                        .frame(height: screenSize.height * 0.4)
+                                        .contentShape(Rectangle())
+                                        .matchedTransitionSource(id: sampleimage, in: animation) {
+                                            $0
+                                                .background(.clear)
+                                        }
+                                        .buttonStyle(CustomButtonStyle())
                                 }
                             }
                         }
-                        .padding(15)
                     }
+                    .padding(15)
+                    .background(
+                        // 斜めに二色で切り替え
+                        ZStack {
+                            // 背景全体(下の色)
+                            Color.white
+                            
+                            // 斜めの三角形(上の色)
+                            GeometryReader { geometry in
+                                Path { path in
+                                    path.move(to: CGPoint(x: 0, y: 0))
+                                    path.addLine(to: CGPoint(x: geometry.size.width, y: 0))
+                                    path.addLine(to: CGPoint(x: geometry.size.width, y: screenSize.height * 0.30))
+                                    path.addLine(to: CGPoint(x: 0, y: screenSize.height * 0.20))
+                                    path.closeSubpath()
+                                }
+                                .fill(Color(.gray).opacity(0.1))
+                            }
+                        }
+                    )
                 }
                 .navigationDestination(for: SampleImage.self) { sampleImage in
                     StampCardDetailView(sampleImage: sampleImage, animation: animation)
