@@ -2,7 +2,6 @@
 .DS_Store
 
 # Xcode
-*.pbxproj
 
 ## Build generated
 build/

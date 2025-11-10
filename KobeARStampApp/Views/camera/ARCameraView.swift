@@ -24,6 +24,11 @@ struct ARCameraView: View {
     @Binding var activeTab: TabModel
     @ObservedObject var stampManager: StampManager
     
+    @StateObject private var photoSaver = PhotoSaver()
+    
+    @State private var showSaveFeedbackAlert = false
+    @State private var saveFeedbackMessage = ""
+    
     @State private var arScale: Float = 1.0
     @State private var isFlashOn = false
     @State private var selectedMode: CaptureMode = .photo
@@ -31,11 +36,19 @@ struct ARCameraView: View {
     @State private var showPhotoSelectionSheet = false
     @State private var showPreviewAndFilterSheet = false
     @State private var finalImage: UIImage?
+    @State private var selectableAssets: [PhotoAsset] = []
     @Environment(\.dismiss) private var dismiss
     
     // シャッターボタンが押されたことをARViewContainerに伝えるための「トリガー」
     private let snapshotTrigger = PassthroughSubject<Void, Never>()
     
+    // 成功したアセットのみを返す計算プロパティ
+    private var successfulAssets: [PhotoAsset] {
+        photoCollection.assets.filter { asset in
+            if case .success = asset.result { return true }
+            return false
+        }
+    }
 
     enum CaptureMode: String {
         case video = "Video"
@@ -75,6 +88,7 @@ struct ARCameraView: View {
                     switch newAsset.result {
                     case .success:
                         // If the capture is successful, show the photo selection sheet.
+                        selectableAssets = successfulAssets
                         showPhotoSelectionSheet = true
                         
                     case .failure(let reason):
@@ -90,17 +104,15 @@ struct ARCameraView: View {
                 }
         
         .sheet(isPresented: $showPhotoSelectionSheet) {
-            PhotoSelectionView(
-                assets: $photoCollection.assets, // 参照先をphotoCollection.assetsに変更
-                isPresented: $showPhotoSelectionSheet,
-                onPhotoSelected: { selectedImage in
-                    finalImage = selectedImage
-                    showPhotoSelectionSheet = false
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        showPreviewAndFilterSheet = true
-                    }
-                }
-            )
+            PhotoSelectionView(assets: $selectableAssets, isPresented: $showPhotoSelectionSheet) { selectedImage in
+                            
+                            // 1. スタンプカード用に内部保存
+                            stampManager.addStamp(image: selectedImage, for: spot)
+                            
+                            // 2. デバイスのフォトライブラリに保存
+                            photoSaver.saveImage(selectedImage)
+                            
+                        }
         }
         .sheet(isPresented: $showPreviewAndFilterSheet) {
             if let image = finalImage {
@@ -113,6 +125,28 @@ struct ARCameraView: View {
                 // ...
             }
         }
+        .onReceive(photoSaver.$saveResult) { result in
+                    guard let result = result else { return } // 新しい結果が来た時だけ実行
+                    switch result {
+                    case .success:
+                        self.saveFeedbackMessage = "写真がフォトライブラリに保存されました！"
+                    case .failure:
+                        // ユーザーが「許可しない」を選んだ場合もここに来る
+                        self.saveFeedbackMessage = "写真の保存に失敗しました。設定アプリで写真へのアクセスを許可してください。"
+                    }
+                    self.showSaveFeedbackAlert = true // 保存結果のアラートを表示
+                    photoSaver.saveResult = nil // 結果をリセット
+                }
+                // 写真保存の結果を通知するアラート
+                .alert("写真の保存", isPresented: $showSaveFeedbackAlert) {
+                    Button("OK") {
+                        // アラートのOKを押したら、スタンプカード画面に遷移
+                        activeTab = .stampRally
+                        dismiss()
+                    }
+                } message: {
+                    Text(saveFeedbackMessage)
+                }
     }
 
     // MARK: - UI Components
@@ -211,3 +245,4 @@ struct ARCameraView: View {
                  activeTab: .constant(.home), // Moved activeTab before stampManager
                  stampManager: StampManager())
 }
+

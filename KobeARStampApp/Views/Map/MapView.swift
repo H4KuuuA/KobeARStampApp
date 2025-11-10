@@ -10,6 +10,7 @@ import MapKit
 
 struct MapView: View {
     @StateObject private var viewModel = MapViewModel()
+    @StateObject private var proximityMonitor = ProximityMonitor(pins: mockPins)
     @State private var selectedPin: CustomPin? = nil
     @State private var isDetailSheetPresented = false
     
