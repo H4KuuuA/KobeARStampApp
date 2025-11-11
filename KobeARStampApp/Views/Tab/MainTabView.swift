@@ -152,7 +152,13 @@ struct MainTabView: View {
         }
         .padding(.bottom, 23)
         .fullScreenCover(isPresented: $showARCameraView) {
-            ARCameraView()
+            let previewSpot = StampManager().allSpots.first ?? Spot(id: "preview-spot", name: "Preview Spot", placeholderImageName: "questionmark.circle", modelName: "box.usdz")
+            
+            // Corrected the argument order: activeTab must come before stampManager
+            ARCameraView(spot: previewSpot,
+                         activeTab: .constant(.home), // Moved activeTab before stampManager
+                         stampManager: StampManager())
+
         }
     }
     @ViewBuilder
