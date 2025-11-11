@@ -140,8 +140,8 @@ struct ARCameraView: View {
                 // 写真保存の結果を通知するアラート
                 .alert("写真の保存", isPresented: $showSaveFeedbackAlert) {
                     Button("OK") {
-                        // アラートのOKを押したら、スタンプカード画面に遷移
-                        activeTab = .stampRally
+                        // アラートのOKを押したら、スタンプカード画面に遷移、ここを変える
+                        //activeTab = .stampRally
                         dismiss()
                     }
                 } message: {
