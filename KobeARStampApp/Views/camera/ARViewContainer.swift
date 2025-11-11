@@ -12,6 +12,8 @@ import Combine
 
 struct ARViewContainer: UIViewRepresentable {
     
+    let spot: Spot
+    
     @Binding var scale: Float
     let snapshotTrigger: PassthroughSubject<Void, Never>
     @ObservedObject var photoCollection: PhotoCollection
@@ -37,7 +39,7 @@ struct ARViewContainer: UIViewRepresentable {
     }
     
     func makeCoordinator() -> Coordinator {
-        Coordinator(snapshotTrigger: snapshotTrigger, photoCollection: photoCollection)
+        Coordinator(spot: spot, snapshotTrigger: snapshotTrigger, photoCollection: photoCollection)
     }
 
     // MARK: - Coordinator
@@ -47,43 +49,37 @@ struct ARViewContainer: UIViewRepresentable {
         var cancellables = Set<AnyCancellable>()
         private var lastPlacedAnchor: AnchorEntity?
         
+        let spot: Spot
+        
         let snapshotTrigger: PassthroughSubject<Void, Never>
         let photoCollection: PhotoCollection
 
-        init(snapshotTrigger: PassthroughSubject<Void, Never>, photoCollection: PhotoCollection) {
-            self.snapshotTrigger = snapshotTrigger
-            self.photoCollection = photoCollection
-        }
-
-        /// タップでモデルを配置するメソッド
+        init(spot: Spot, snapshotTrigger: PassthroughSubject<Void, Never>, photoCollection: PhotoCollection) {
+                    self.spot = spot
+                    self.snapshotTrigger = snapshotTrigger
+                    self.photoCollection = photoCollection
+                }
+        
         @objc func handleTap(_ recognizer: UITapGestureRecognizer) {
-            guard let arView = arView, lastPlacedAnchor == nil else { return }
-            
-            let location = recognizer.location(in: arView)
-            let results = arView.raycast(from: location, allowing: .estimatedPlane, alignment: .horizontal)
-
-            if let firstResult = results.first {
-                let anchor = AnchorEntity(world: firstResult.worldTransform)
-                
-                let modelName = "Dragon_2.5_For_Animations.usdz"
-                ModelEntity.loadModelAsync(named: modelName)
-                    .receive(on: RunLoop.main)
-                    .sink(receiveCompletion: { _ in }, receiveValue: { [weak self] modelEntity in
-                        
-                        if let animation = modelEntity.availableAnimations.first {
-                            modelEntity.playAnimation(animation.repeat())
-                        }
-                        
-                        modelEntity.generateCollisionShapes(recursive: true)
-                        anchor.addChild(modelEntity)
-                        arView.scene.addAnchor(anchor)
-                        self?.lastPlacedAnchor = anchor
-                    })
-                    .store(in: &cancellables)
+            guard let arView = arView,
+                  let query = arView.makeRaycastQuery(from: recognizer.location(in: arView), allowing: .estimatedPlane, alignment: .horizontal),
+                  let firstResult = arView.session.raycast(query).first else {
+                return
             }
+            
+            let anchor = AnchorEntity(world: firstResult.worldTransform)
+            
+            // NOTE: This is a placeholder model. Replace with your actual model loading logic.
+            let box = MeshResource.generateBox(size: 0.1)
+            let material = SimpleMaterial(color: .systemPink, isMetallic: true)
+            let modelEntity = ModelEntity(mesh: box, materials: [material])
+            
+            modelEntity.generateCollisionShapes(recursive: true)
+            anchor.addChild(modelEntity)
+            arView.scene.addAnchor(anchor)
+            lastPlacedAnchor = anchor
         }
         
-        /// シャッターボタンの合図を監視する
         func subscribeToActionStream() {
             snapshotTrigger
                 .sink { [weak self] in
@@ -92,25 +88,38 @@ struct ARViewContainer: UIViewRepresentable {
                 .store(in: &cancellables)
         }
 
-        /// スナップショットを撮影する
         func takeSnapshot() {
-                    arView?.snapshot(saveToHDR: false) { [weak self] image in
-                        
-                        
-                        // snapshot完了後の処理を、ブロックごと全てメインスレッドに送る
-                        DispatchQueue.main.async {
-                            // メインスレッド内で、安全にselfとimageを展開する
-                            guard let self = self, let capturedImage = image else { return }
-                            
-                            let newAsset = PhotoAsset(image: capturedImage)
-                            self.photoCollection.assets.append(newAsset)
-                        }
-                        
-                    }
+            guard let arView = arView else { return }
+            
+            let captureResult = checkCaptureCondition(arView: arView)
+
+            arView.snapshot(saveToHDR: false) { [weak self] image in
+                DispatchQueue.main.async {
+                    guard let self = self, let capturedImage = image else { return }
+                    
+                    let newAsset = PhotoAsset(image: capturedImage, result: captureResult)
+                    self.photoCollection.assets.append(newAsset)
                 }
+            }
+        }
+        
+        private func checkCaptureCondition(arView: ARView) -> Result<Void, CaptureFailureReason> {
+            guard let model = lastPlacedAnchor else {
+                return .failure(.noModelPlaced)
+            }
+            
+            guard let projectedPoint = arView.project(model.position(relativeTo: nil)) else {
+                return .failure(.modelNotInView)
+            }
+            
+            if arView.bounds.contains(projectedPoint) {
+                return .success(())
+            } else {
+                return .failure(.modelNotInView)
+            }
+        }
 
         func updateScale(_ newScale: Float) {
-            // スケール変更ロジックは今後こちらに実装
             lastPlacedAnchor?.setScale(SIMD3<Float>(repeating: newScale), relativeTo: nil)
         }
     }
