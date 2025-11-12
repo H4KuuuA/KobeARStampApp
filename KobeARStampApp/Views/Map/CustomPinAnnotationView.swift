@@ -21,10 +21,10 @@ class CustomPinAnnotationView: MKAnnotationView {
             
             // SwiftUI側と同期するピンの見た目サイズ
             let viewSize: CGFloat = 70
-            let pinTipOffsetx = viewSize / 14
-            let pinTipOffsety = viewSize * 3 / 4
             
-            centerOffset = CGPoint(x:-pinTipOffsetx, y: -pinTipOffsety)
+            // 座標点にピンの下端（先端）が合うように、ビュー中心を半分だけ上にずらす
+            // MKAnnotationView の座標はビューの中心なので、y を -viewSize/2 にするのが基本
+            centerOffset = CGPoint(x: 0, y: -viewSize / 2)
             
             let pinColorHex = customAnnotation.customPin.pinColorName ?? "#0000FF"
             let swiftUIView = CustomAnnotaitonView(
