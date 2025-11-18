@@ -8,13 +8,19 @@
 import SwiftUI
 
 struct StampProgressBar: View {
-    let progress: CGFloat
+    @ObservedObject var stampManager: StampManager
     let size: CGFloat
     let showPercentage: Bool
     
     // アニメーション用の状態変数
     @State private var animatedProgress: CGFloat = 0
     @State private var animatedSize: CGFloat = 40
+    
+    // 進捗の割合を計算
+    private var progressRatio: CGFloat {
+        guard stampManager.totalSpotCount > 0 else { return 0 }
+        return CGFloat(stampManager.acquiredStampCount) / CGFloat(stampManager.totalSpotCount)
+    }
     
     var body: some View {
         ZStack {
@@ -25,7 +31,7 @@ struct StampProgressBar: View {
             
             // プログレス表示の円
             Circle()
-                .trim(from: 0, to: animatedProgress / 10.0)
+                .trim(from: 0, to: animatedProgress)
                 .stroke(
                     LinearGradient(
                         gradient: Gradient(colors: [
@@ -43,7 +49,7 @@ struct StampProgressBar: View {
             
             // パーセント表示
             if showPercentage {
-                Text("\(Int(animatedProgress * 10))%")
+                Text("\(Int(progressRatio * 100))%")
                     .font(.system(size: animatedSize * 0.18, weight: .bold, design: .rounded))
                     .foregroundColor(Color("DarkBlue"))
             }
@@ -55,22 +61,22 @@ struct StampProgressBar: View {
             }
         }
         // progress の変更に対応
-        .onChange(of: progress) { _, newProgress in
+        .onChange(of: progressRatio) { _, newRatio in
             withAnimation(.easeInOut(duration: 0.8)) {
-                animatedProgress = newProgress
+                animatedProgress = newRatio
             }
         }
         .onAppear {
-            animatedProgress = progress
+            animatedProgress = progressRatio
             animatedSize = size
         }
     }
 }
 
 struct StampDemoView: View {
+    @StateObject private var stampManager = StampManager()
     @State private var isExpanded = false
-    @State private var progress: CGFloat = 7
-    @State private var eventName = "みんなで！アート探検 in HAT神戸"
+    @State private var eventName = "みんなで!アート探検 in HAT神戸"
     
     // カスタムアニメーション設定
     private var expansionAnimation: Animation {
@@ -110,7 +116,7 @@ struct StampDemoView: View {
                     // ✅ プログレスバーは常に1つ
                     HStack {
                         StampProgressBar(
-                            progress: progress,
+                            stampManager: stampManager,
                             size: isExpanded ? 100 : 40,
                             showPercentage: isExpanded
                         )
@@ -150,14 +156,16 @@ struct StampDemoView: View {
                                         .font(.system(size: 22, weight: .bold, design: .rounded))
                                         .foregroundColor(Color(red: 0.1, green: 0.1, blue: 0.1))
                                     HStack(spacing: 0) {
-                                        Text("\(Int(progress))")
+                                        Text("\(stampManager.acquiredStampCount)")
                                             .font(.system(size: 40, weight: .bold, design: .rounded))
                                             .foregroundColor(Color("DarkBlue"))
+                                            .contentTransition(.numericText())
                                         
-                                        Text("/10")
+                                        Text("/\(stampManager.totalSpotCount)")
                                             .font(.system(size: 40, weight: .bold, design: .rounded))
                                             .foregroundColor(Color(red: 0.1, green: 0.1, blue: 0.1))
                                     }
+                                    .animation(.spring(), value: stampManager.acquiredStampCount)
                                 }
                                 .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
                                 .padding(.leading, 2)
@@ -165,7 +173,7 @@ struct StampDemoView: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.leading, 16)
-                        .transition(.opacity.combined(with: .scale)) // テキストはパッと切り替え
+                        .transition(.opacity.combined(with: .scale))
                         .animation(contentAnimation, value: isExpanded)
                     } else {
                         // 縮小時のテキスト表示
@@ -186,14 +194,16 @@ struct StampDemoView: View {
                                     .font(.system(size: 20, weight: .bold, design: .rounded))
                                     .foregroundColor(Color(red: 0.1, green: 0.1, blue: 0.1))
                                 
-                                Text("\(Int(progress))")
+                                Text("\(stampManager.acquiredStampCount)")
                                     .font(.system(size: 20, weight: .bold, design: .rounded))
                                     .foregroundColor(Color("DarkBlue"))
+                                    .contentTransition(.numericText())
                                 
-                                Text("/10")
+                                Text("/\(stampManager.totalSpotCount)")
                                     .font(.system(size: 20, weight: .bold, design: .rounded))
                                     .foregroundColor(Color(red: 0.1, green: 0.1, blue: 0.1))
                             }
+                            .animation(.spring(), value: stampManager.acquiredStampCount)
                             .shadow(color: .black.opacity(0.1), radius: 1, x: 0, y: 1)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -212,6 +222,27 @@ struct StampDemoView: View {
                     isExpanded.toggle()
                 }
             }
+            
+//            // デバッグ用ボタン
+//            #if DEBUG
+//            HStack {
+//                Button("スタンプ +1") {
+//                    stampManager.debugAcquireFirstStamp()
+//                }
+//                .padding()
+//                .background(Color.blue)
+//                .foregroundColor(.white)
+//                .cornerRadius(8)
+//                
+//                Button("リセット") {
+//                    stampManager.resetAllStamps()
+//                }
+//                .padding()
+//                .background(Color.red)
+//                .foregroundColor(.white)
+//                .cornerRadius(8)
+//            }
+//            
         }
         .padding()
     }
