@@ -48,7 +48,7 @@ struct MainTabView: View {
                         case .home:
                             MapView()
                         case .stamp:
-                            StampCardView()
+                            StampCardView(stampManager: StampManager())
                         }
                     }
                     

@@ -10,108 +10,12 @@ import CoreLocation
 
 class StampManager: ObservableObject {
     
-    // MARK: - All Spots（mockPinsから生成）
+    // MARK: - Properties
     
-    let allSpots: [Spot] = [
-        // ========== 王子動物園エリア（3箇所） ==========
-        Spot(
-            id: "ojizoo-panda",
-            name: "パンダエリア",
-            placeholderImageName: "hatkobe_1",
-            modelName: "Dragon_2.5_For_Animations.usdz",
-            coordinate: CLLocationCoordinate2D(latitude: 34.709591901580474, longitude: 135.21519562134145),
-            subtitle: "王子動物園のパンダ",
-            category: "動物園"
-        ),
-        Spot(
-            id: "ojizoo-elephant",
-            name: "ゾウ広場",
-            placeholderImageName: "hatkobe_2",
-            modelName: "Dragon_2.5_For_Animations.usdz",
-            coordinate: CLLocationCoordinate2D(latitude: 34.71040, longitude: 135.21580),
-            subtitle: "王子動物園のゾウ",
-            category: "動物園"
-        ),
-        Spot(
-            id: "ojizoo-flamingo",
-            name: "フラミンゴ池",
-            placeholderImageName: "hatkobe_3",
-            modelName: "Dragon_2.5_For_Animations.usdz",
-            coordinate: CLLocationCoordinate2D(latitude: 34.70880, longitude: 135.21450),
-            subtitle: "王子動物園のフラミンゴ",
-            category: "動物園"
-        ),
-        
-        // ========== 兵庫県立美術館エリア（3箇所） ==========
-        Spot(
-            id: "museum-entrance",
-            name: "美術館入口",
-            placeholderImageName: "hatkobe_4",
-            modelName: "Dragon_2.5_For_Animations.usdz",
-            coordinate: CLLocationCoordinate2D(latitude: 34.700080471831484, longitude: 135.21794931523175),
-            subtitle: "兵庫県立美術館",
-            category: "美術館"
-        ),
-        Spot(
-            id: "museum-deck",
-            name: "海のデッキ",
-            placeholderImageName: "hatkobe_5",
-            modelName: "Dragon_2.5_For_Animations.usdz",
-            coordinate: CLLocationCoordinate2D(latitude: 34.69950, longitude: 135.21850),
-            subtitle: "美術館の海側デッキ",
-            category: "美術館"
-        ),
-        Spot(
-            id: "museum-garden",
-            name: "彫刻の庭",
-            placeholderImageName: "hatkobe_6",
-            modelName: "Dragon_2.5_For_Animations.usdz",
-            coordinate: CLLocationCoordinate2D(latitude: 34.70080, longitude: 135.21700),
-            subtitle: "美術館の彫刻エリア",
-            category: "美術館"
-        ),
-        
-        // ========== HAT神戸エリア（4箇所） ==========
-        Spot(
-            id: "hat-walk",
-            name: "海辺の散歩道",
-            placeholderImageName: "hatkobe_1",
-            modelName: "Dragon_2.5_For_Animations.usdz",
-            coordinate: CLLocationCoordinate2D(latitude: 34.69782178897619, longitude: 135.21539125345234),
-            subtitle: "HAT神戸の海沿い",
-            category: "HAT神戸"
-        ),
-        Spot(
-            id: "hat-art",
-            name: "芸術広場",
-            placeholderImageName: "hatkobe_2",
-            modelName: "Dragon_2.5_For_Animations.usdz",
-            coordinate: CLLocationCoordinate2D(latitude: 34.69850, longitude: 135.21600),
-            subtitle: "HAT神戸の芸術広場",
-            category: "HAT神戸"
-        ),
-        Spot(
-            id: "hat-music",
-            name: "音楽の丘",
-            placeholderImageName: "hatkobe_3",
-            modelName: "Dragon_2.5_For_Animations.usdz",
-            coordinate: CLLocationCoordinate2D(latitude: 34.69700, longitude: 135.21480),
-            subtitle: "HAT神戸の音楽施設",
-            category: "HAT神戸"
-        ),
-        Spot(
-            id: "hat-monument",
-            name: "記念碑",
-            placeholderImageName: "hatkobe_4",
-            modelName: "Dragon_2.5_For_Animations.usdz",
-            coordinate: CLLocationCoordinate2D(latitude: 34.69650, longitude: 135.21420),
-            subtitle: "HAT神戸の記念碑",
-            category: "HAT神戸"
-        ),
-    ]
+    /// スポットのリスト(将来的にはDBから取得)
+    @Published var allSpots: [Spot] = []
     
-    // MARK: - Published Properties
-    
+    /// 取得済みスタンプ(ローカル保存)
     @Published var acquiredStamps: [String: AcquiredStamp] = [:]
     
     // MARK: - Computed Properties
@@ -145,25 +49,55 @@ class StampManager: ObservableObject {
         stampsDirectoryURL = documentsURL.appendingPathComponent("StampImages")
         stampsJSONURL = documentsURL.appendingPathComponent("stamps.json")
         
-        // ディレクトリを作成
         try? FileManager.default.createDirectory(
             at: stampsDirectoryURL,
             withIntermediateDirectories: true,
             attributes: nil
         )
         
-        loadStamps()
+        loadSpots()  // ← 先にスポットを読み込む
+        loadStamps() // ← その後にスタンプを読み込む
+    }
+    
+    // MARK: - Spot Management
+    
+    /// スポットを読み込む(将来的にはDBから)
+    private func loadSpots() {
+        // 現在はハードコード、将来的にはDB連携
+        allSpots = Self.defaultSpots
+    }
+    
+    /// DBからスポットを取得(将来の実装)
+    func fetchSpotsFromDB() async throws {
+        // TODO: Firebase/Supabaseから取得
+        // let spots = try await spotRepository.fetchSpots()
+        // await MainActor.run {
+        //     self.allSpots = spots
+        // }
+    }
+    
+    /// スポットIDからSpotを取得
+    func getSpot(by id: String) -> Spot? {
+        return allSpots.first { $0.id == id }
     }
     
     // MARK: - Stamp Management
     
-    /// スタンプを追加
+    /// スタンプを追加(トランザクション的)
     func addStamp(image: UIImage, for spot: Spot) {
+        // 1. 既に取得済みかチェック
         guard acquiredStamps[spot.id] == nil else {
             print("⚠️ スタンプは既に取得済み: \(spot.name)")
             return
         }
         
+        // 2. Spotが有効か検証(DBから削除されていないか)
+        guard getSpot(by: spot.id) != nil else {
+            print("❌ 無効なスポット: \(spot.id)")
+            return
+        }
+        
+        // 3. 画像を保存
         let fileName = spot.id + ".jpeg"
         let fileURL = stampsDirectoryURL.appendingPathComponent(fileName)
         
@@ -174,6 +108,8 @@ class StampManager: ObservableObject {
         
         do {
             try data.write(to: fileURL)
+            
+            // 4. メタデータを保存
             let newStamp = AcquiredStamp(
                 id: UUID(),
                 spotID: spot.id,
@@ -182,7 +118,14 @@ class StampManager: ObservableObject {
             )
             acquiredStamps[spot.id] = newStamp
             saveStamps()
+            
             print("✅ スタンプを保存: \(spot.name)")
+            
+            // 5. オプション: サーバーに同期
+            // Task {
+            //     try? await syncStampToServer(stamp: newStamp)
+            // }
+            
         } catch {
             print("❌ 画像保存失敗: \(error.localizedDescription)")
         }
@@ -191,11 +134,6 @@ class StampManager: ObservableObject {
     /// スタンプが取得済みかチェック
     func isStampAcquired(spotID: String) -> Bool {
         return acquiredStamps[spotID] != nil
-    }
-    
-    /// スポットIDからSpotを取得
-    func getSpot(by id: String) -> Spot? {
-        return allSpots.first { $0.id == id }
     }
     
     // MARK: - Image Retrieval
@@ -209,7 +147,7 @@ class StampManager: ObservableObject {
         return UIImage(data: data)
     }
     
-    /// Spotから画像を取得（取得済みの場合のみ）
+    /// Spotから画像を取得(取得済みの場合のみ)
     func getImage(for spot: Spot) -> UIImage? {
         guard let stamp = acquiredStamps[spot.id] else {
             return nil
@@ -217,7 +155,7 @@ class StampManager: ObservableObject {
         return getImage(for: stamp)
     }
     
-    // MARK: - Persistence
+    // MARK: - Persistence (Local)
     
     /// スタンプリストをJSONに保存
     private func saveStamps() {
@@ -233,26 +171,59 @@ class StampManager: ObservableObject {
     /// スタンプリストをJSONから読み込み
     private func loadStamps() {
         guard let data = try? Data(contentsOf: stampsJSONURL) else {
-            print("ℹ️ スタンプリストが見つかりません（初回起動）")
+            print("ℹ️ スタンプリストが見つかりません(初回起動)")
             return
         }
         
         do {
             acquiredStamps = try JSONDecoder().decode([String: AcquiredStamp].self, from: data)
             print("✅ スタンプリストを読み込み: \(acquiredStamps.count)個")
+            
+            // DBから削除されたSpotのスタンプをクリーンアップ
+            cleanupOrphanedStamps()
+            
         } catch {
             print("❌ スタンプリスト読み込み失敗: \(error.localizedDescription)")
         }
     }
     
+    /// DBから削除されたスポットのスタンプを削除
+    private func cleanupOrphanedStamps() {
+        let validSpotIDs = Set(allSpots.map { $0.id })
+        let orphanedStampIDs = acquiredStamps.keys.filter { !validSpotIDs.contains($0) }
+        
+        for stampID in orphanedStampIDs {
+            if let stamp = acquiredStamps[stampID] {
+                let fileURL = stampsDirectoryURL.appendingPathComponent(stamp.imageFileName)
+                try? FileManager.default.removeItem(at: fileURL)
+                acquiredStamps.removeValue(forKey: stampID)
+                print("🧹 孤立したスタンプを削除: \(stampID)")
+            }
+        }
+        
+        if !orphanedStampIDs.isEmpty {
+            saveStamps()
+        }
+    }
+    
+    // MARK: - Sync (Future Implementation)
+    
+    /// サーバーにスタンプ取得履歴を同期(将来の実装)
+    private func syncStampToServer(stamp: AcquiredStamp) async throws {
+        // TODO: Firebase/Supabaseに送信
+        // await apiClient.uploadStampAcquisition(
+        //     userID: currentUserID,
+        //     spotID: stamp.spotID,
+        //     acquiredDate: stamp.acquiredDate
+        // )
+    }
+    
     // MARK: - Category Filtering
     
-    /// カテゴリ別にスポットをフィルタリング
     func getSpots(by category: String) -> [Spot] {
         return allSpots.filter { $0.category == category }
     }
     
-    /// 全カテゴリを取得
     var allCategories: [String] {
         let categories = allSpots.compactMap { $0.category }
         return Array(Set(categories)).sorted()
@@ -261,30 +232,155 @@ class StampManager: ObservableObject {
     // MARK: - Debug
     
     #if DEBUG
-    /// 全スタンプをリセット（デバッグ用）
     func resetAllStamps() {
-        // 画像ファイルを削除
         for stamp in acquiredStamps.values {
             let fileURL = stampsDirectoryURL.appendingPathComponent(stamp.imageFileName)
             try? FileManager.default.removeItem(at: fileURL)
         }
-        
-        // メモリとJSONをクリア
         acquiredStamps.removeAll()
         saveStamps()
         print("🔄 全スタンプをリセットしました")
     }
     
-    /// 特定のスタンプをリセット
-    func resetStamp(spotID: String) {
-        guard let stamp = acquiredStamps[spotID] else { return }
+    /// デバッグ用: プレースホルダー画像を使って特定のスポットのスタンプを取得済みにする
+    func debugAcquireStamp(spotID: String) {
+        guard let spot = getSpot(by: spotID) else {
+            print("❌ スポットが見つかりません: \(spotID)")
+            return
+        }
         
-        let fileURL = stampsDirectoryURL.appendingPathComponent(stamp.imageFileName)
-        try? FileManager.default.removeItem(at: fileURL)
+        // プレースホルダー画像を取得
+        guard let placeholderImage = UIImage(named: spot.placeholderImageName) else {
+            print("❌ プレースホルダー画像が見つかりません: \(spot.placeholderImageName)")
+            return
+        }
         
-        acquiredStamps.removeValue(forKey: spotID)
-        saveStamps()
-        print("🔄 スタンプをリセット: \(spotID)")
+        // スタンプとして保存
+        addStamp(image: placeholderImage, for: spot)
+        print("✅ デバッグ: \(spot.name) のスタンプを取得しました")
+    }
+    
+    /// デバッグ用: 最初のスポットのスタンプを取得済みにする
+    func debugAcquireFirstStamp() {
+        guard let firstSpot = allSpots.first else {
+            print("❌ スポットが存在しません")
+            return
+        }
+        debugAcquireStamp(spotID: firstSpot.id)
+    }
+    
+    /// デバッグ用: 複数のスポットをまとめて取得済みにする
+    func debugAcquireMultipleStamps(spotIDs: [String]) {
+        for spotID in spotIDs {
+            debugAcquireStamp(spotID: spotID)
+        }
+    }
+    
+    /// デバッグ用: ランダムに指定数のスタンプを取得する
+    func debugAcquireRandomStamps(count: Int) {
+        let availableSpots = allSpots.filter { !isStampAcquired(spotID: $0.id) }
+        let spotsToAcquire = availableSpots.shuffled().prefix(count)
+        
+        for spot in spotsToAcquire {
+            debugAcquireStamp(spotID: spot.id)
+        }
     }
     #endif
+}
+
+// MARK: - Default Spots (mockPinsに対応した10箇所)
+
+extension StampManager {
+    static let defaultSpots: [Spot] = [
+        Spot(
+            id: "nada-north-plaza",
+            name: "灘駅北口広場",
+            placeholderImageName: "hatkobe_1",
+            modelName: "Dragon_2.5_For_Animations.usdz",
+            coordinate: CLLocationCoordinate2D(latitude: 34.70622423097614, longitude: 135.21616725739096),
+            subtitle: "灘駅北側の待ち合わせ広場",
+            category: "公園"
+        ),
+        Spot(
+            id: "minume-shrine",
+            name: "敏馬神社社殿",
+            placeholderImageName: "hatkobe_2",
+            modelName: "Dragon_2.5_For_Animations.usdz",
+            coordinate: CLLocationCoordinate2D(latitude: 34.70344357985072, longitude: 135.21879732451967),
+            subtitle: "海風香る縁切りの社",
+            category: "文化"
+        ),
+        Spot(
+            id: "nagisa-park",
+            name: "なぎさ公園",
+            placeholderImageName: "hatkobe_3",
+            modelName: "Dragon_2.5_For_Animations.usdz",
+            coordinate: CLLocationCoordinate2D(latitude: 34.6970625279125, longitude: 135.21454865587015),
+            subtitle: "海風とアートが彩る公園",
+            category: "公園"
+        ),
+        Spot(
+            id: "saigo-river-park",
+            name: "西郷河川公園",
+            placeholderImageName: "hatkobe_4",
+            modelName: "Dragon_2.5_For_Animations.usdz",
+            coordinate: CLLocationCoordinate2D(latitude: 34.702412041570284, longitude: 135.22474839795566),
+            subtitle: "川のそばでバスケも遊びも",
+            category: "公園"
+        ),
+        Spot(
+            id: "museum-road",
+            name: "ミュージアムロード",
+            placeholderImageName: "hatkobe_5",
+            modelName: "Dragon_2.5_For_Animations.usdz",
+            coordinate: CLLocationCoordinate2D(latitude: 34.701138596503135, longitude: 135.2180575627066),
+            subtitle: "文化が連なるアート街道",
+            category: "アート"
+        ),
+        Spot(
+            id: "hyogo-museum",
+            name: "兵庫県立美術館",
+            placeholderImageName: "hatkobe_6",
+            modelName: "Dragon_2.5_For_Animations.usdz",
+            coordinate: CLLocationCoordinate2D(latitude: 34.69938435220899, longitude: 135.21824370509106),
+            subtitle: "海辺に佇むモダンアートの殿堂",
+            category: "アート"
+        ),
+        Spot(
+            id: "disaster-memorial-center",
+            name: "震災記念21世紀研究機構",
+            placeholderImageName: "hatkobe_1",
+            modelName: "Dragon_2.5_For_Animations.usdz",
+            coordinate: CLLocationCoordinate2D(latitude: 34.699200000000, longitude: 135.216300000000),
+            subtitle: "震災の記憶を未来へ紡ぐ",
+            category: "教育"
+        ),
+        Spot(
+            id: "oji-zoo",
+            name: "王子動物園",
+            placeholderImageName: "hatkobe_2",
+            modelName: "Dragon_2.5_For_Animations.usdz",
+            coordinate: CLLocationCoordinate2D(latitude: 34.70978782499848, longitude: 135.21521542400927),
+            subtitle: "六甲山麓に広がる動物公園",
+            category: "娯楽"
+        ),
+        Spot(
+            id: "yokoo-museum",
+            name: "横尾忠則現代美術館",
+            placeholderImageName: "hatkobe_3",
+            modelName: "Dragon_2.5_For_Animations.usdz",
+            coordinate: CLLocationCoordinate2D(latitude: 34.708589194409825, longitude: 135.21337999921263),
+            subtitle: "横尾忠則ワールドが息づく",
+            category: "アート"
+        ),
+        Spot(
+            id: "kobe-ice-campus",
+            name: "Sysmex Kobe Ice Campus",
+            placeholderImageName: "hatkobe_4",
+            modelName: "Dragon_2.5_For_Animations.usdz",
+            coordinate: CLLocationCoordinate2D(latitude: 34.698971647969785, longitude: 135.2138738394403),
+            subtitle: "神戸のスケート文化を育む拠点",
+            category: "スポーツ"
+        ),
+    ]
 }

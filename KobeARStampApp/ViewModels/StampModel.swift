@@ -9,7 +9,7 @@ import SwiftUI
 import CoreLocation
 
 /// スタンプラリーのスポット情報
-struct Spot: Identifiable, Codable {
+struct Spot: Identifiable, Codable, Equatable, Hashable {
     let id: String
     let name: String
     let placeholderImageName: String
@@ -37,6 +37,16 @@ struct Spot: Identifiable, Codable {
         self.coordinate = coordinate
         self.subtitle = subtitle
         self.category = category
+    }
+    
+    // Hashableの実装
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+    
+    // Equatableの実装
+    static func == (lhs: Spot, rhs: Spot) -> Bool {
+        lhs.id == rhs.id
     }
     
     // MARK: - Codable対応
