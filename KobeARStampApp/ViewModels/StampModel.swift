@@ -6,7 +6,7 @@
 //
 
 import Foundation
-
+import CoreLocation
 /// A data structure representing a single AR spot.
 struct Spot: Identifiable {
     let id: String // e.g., "kobe-port-tower"
@@ -14,6 +14,7 @@ struct Spot: Identifiable {
     let placeholderImageName: String
     /// The filename of the 3D model associated with this spot (e.g., "port_tower.usdz").
     let modelName: String
+    let coordinate: CLLocationCoordinate2D
 }
 
 /// A data structure representing a single collected stamp.

@@ -8,6 +8,7 @@
 // ARCameraView.swift
 import SwiftUI
 import Combine // Combineフレームワークをインポート
+import CoreLocation
 
 // 写真データを複数のViewで共有・監視するためのクラス
 class PhotoCollection: ObservableObject {
@@ -238,7 +239,7 @@ struct ARCameraView: View {
 
 
 #Preview {
-    let previewSpot = StampManager().allSpots.first ?? Spot(id: "preview-spot", name: "Preview Spot", placeholderImageName: "questionmark.circle", modelName: "box.usdz")
+    let previewSpot = StampManager().allSpots.first ?? Spot(id: "preview-spot", name: "Preview Spot", placeholderImageName: "questionmark.circle", modelName: "box.usdz", coordinate: CLLocationCoordinate2D(latitude: 34.6901, longitude: 135.1955))
     
     // Corrected the argument order: activeTab must come before stampManager
     ARCameraView(spot: previewSpot,

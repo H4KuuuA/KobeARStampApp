@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreLocation
 
 struct MainTabView: View {
     @State private var selectedTabIndex = 0
@@ -149,7 +150,7 @@ struct MainTabView: View {
         }
         .padding(.bottom, 23)
         .fullScreenCover(isPresented: $showARCameraView) {
-            let previewSpot = StampManager().allSpots.first ?? Spot(id: "preview-spot", name: "Preview Spot", placeholderImageName: "questionmark.circle", modelName: "box.usdz")
+            let previewSpot = StampManager().allSpots.first ?? Spot(id: "preview-spot", name: "Preview Spot", placeholderImageName: "questionmark.circle", modelName: "box.usdz", coordinate: CLLocationCoordinate2D(latitude: 34.6901, longitude: 135.1955))
             
             // Corrected the argument order: activeTab must come before stampManager
             ARCameraView(spot: previewSpot,
@@ -202,3 +203,4 @@ struct MainTabView: View {
 #Preview {
     MainTabView()
 }
+

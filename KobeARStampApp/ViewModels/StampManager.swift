@@ -6,15 +6,40 @@
 //
 
 import SwiftUI
+import CoreLocation
 
 class StampManager: ObservableObject {
     /// The source of truth for all available spots in the rally.
     
     let allSpots: [Spot] = [
-        Spot(id: "kobe-port-tower", name: "神戸ポートタワー", placeholderImageName: "spot_placeholder_1", modelName: "port_tower.usdz"),
-        Spot(id: "meriken-park", name: "メリケンパーク", placeholderImageName: "spot_placeholder_2", modelName: "meriken_park.usdz"),
-        Spot(id: "nankinmachi", name: "南京町", placeholderImageName: "spot_placeholder_3", modelName: "nankinmachi.usdz"),
-        Spot(id: "ijinkan", name: "異人館", placeholderImageName: "spot_placeholder_4", modelName: "ijinkan.usdz"),
+        Spot(
+            id: "kobe-port-tower",
+            name: "神戸ポートタワー",
+            placeholderImageName: "spot_placeholder_1",
+            modelName: "port_tower.usdz",
+            coordinate: CLLocationCoordinate2D(latitude: 34.6895, longitude: 135.1870)
+        ),
+        Spot(
+            id: "meriken-park",
+            name: "メリケンパーク",
+            placeholderImageName: "spot_placeholder_2",
+            modelName: "meriken_park.usdz",
+            coordinate: CLLocationCoordinate2D(latitude: 34.6804, longitude: 135.1860)
+        ),
+        Spot(
+            id: "nankinmachi",
+            name: "南京町",
+            placeholderImageName: "spot_placeholder_3",
+            modelName: "nankinmachi.usdz",
+            coordinate: CLLocationCoordinate2D(latitude: 34.6896, longitude: 135.1909)
+        ),
+        Spot(
+            id: "ijinkan",
+            name: "異人館",
+            placeholderImageName: "spot_placeholder_4",
+            modelName: "ijinkan.usdz",
+            coordinate: CLLocationCoordinate2D(latitude: 34.7055, longitude: 135.1897)
+        ),
         // ... more spots
     ]
     
@@ -84,3 +109,4 @@ class StampManager: ObservableObject {
         return UIImage(data: data)
     }
 }
+
