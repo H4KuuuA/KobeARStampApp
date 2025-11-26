@@ -10,33 +10,41 @@ import MapKit
 
 struct MapView: View {
     @StateObject private var viewModel = MapViewModel()
-    @StateObject private var proximityMonitor = ProximityMonitor(pins: mockPins)
-    @State private var selectedPin: CustomPin? = nil
+    @StateObject private var stampManager = StampManager()
+    @StateObject private var proximityMonitor: ProximityMonitor
+    @State private var selectedSpot: Spot? = nil
     @State private var isDetailSheetPresented = false
+    @Namespace private var animation
+    
+    init() {
+        let manager = StampManager()
+        _stampManager = StateObject(wrappedValue: manager)
+        _proximityMonitor = StateObject(wrappedValue: ProximityMonitor(spots: manager.allSpots))
+    }
     
     var body: some View {
         ZStack {
             RestrictedMapView(
                 centerCoordinate: viewModel.centerCoordinate,
                 radiusInMeters: viewModel.radiusInMeters,
-                pins: mockPins
+                spots: stampManager.allSpots
             )
             .edgesIgnoringSafeArea(.all)
             .onTapGesture {
-                // マップをタップしたときにピンの選択を解除
-                NotificationCenter.default.post(name: .customPinDeselected, object: nil)
+                // マップをタップしたときにスポットの選択を解除
+                NotificationCenter.default.post(name: .spotDeselected, object: nil)
             }
             
-            if let pin = selectedPin {
+            if let spot = selectedSpot {
                 VStack {
                     Spacer()
                     
-                    CardView(pin: pin) {
-                        selectedPin = nil
+                    SpotCardView(spot: spot, stampManager: stampManager) {
+                        selectedSpot = nil
                     }
                     .frame(maxWidth: 350)
                     .padding()
-                    .padding(.bottom, 70)
+                    .padding(.bottom, 100)
                     .onTapGesture {
                         isDetailSheetPresented = true
                     }
@@ -45,31 +53,30 @@ struct MapView: View {
                 .zIndex(1)
             }
         }
-        .animation(.easeInOut(duration: 0.3), value: selectedPin)
+        .animation(.easeInOut(duration: 0.3), value: selectedSpot)
         .sheet(isPresented: $isDetailSheetPresented) {
-            if let pin = selectedPin {
-                PinDetailSheetView(pin: pin)
-                    .presentationDetents([.large])
-                    .presentationDragIndicator(.visible)
+            if let spot = selectedSpot {
+                NavigationStack {
+                    StampCardDetailView(spot: spot, animation: animation, stampManager: stampManager)
+                        .toolbarVisibility(.hidden, for: .navigationBar)
+                }
             }
         }
-
-        .onReceive(NotificationCenter.default.publisher(for: .customPinTapped)) { notification in
-            if let newPin = notification.object as? CustomPin {
+        .onReceive(NotificationCenter.default.publisher(for: .spotTapped)) { notification in
+            if let newSpot = notification.object as? Spot {
                 withAnimation {
-                    selectedPin = nil
+                    selectedSpot = nil
                 }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
                     withAnimation {
-                        selectedPin = newPin
+                        selectedSpot = newSpot
                     }
                 }
             }
         }
-        // ★ 追加：ピン以外がタップされたときにカードも閉じる
-        .onReceive(NotificationCenter.default.publisher(for: .customPinDeselected)) { _ in
+        .onReceive(NotificationCenter.default.publisher(for: .spotDeselected)) { _ in
             withAnimation {
-                selectedPin = nil
+                selectedSpot = nil
             }
         }
     }

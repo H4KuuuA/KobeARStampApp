@@ -59,7 +59,7 @@ private struct MenuButton: View {
         Button(action: {
             showMenu.toggle()
             
-            NotificationCenter.default.post(name: .customPinDeselected, object: nil)
+            NotificationCenter.default.post(name: .spotDeselected, object: nil)
             
         }) {
             Image(systemName: showMenu ? "xmark" : "line.3.horizontal")
