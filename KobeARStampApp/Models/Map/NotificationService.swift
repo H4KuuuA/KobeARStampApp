@@ -21,14 +21,14 @@ final class NotificationService {
     // MARK: - Properties
     
     // 通知送信履歴（重複防止用）
-    private var notificationHistory: [UUID: Date] = [:]
+    private var notificationHistory: [String: Date] = [:]
     
-    // スタンプ獲得済みピン（通知不要）
-    private var completedPinIds: Set<UUID> = []
+    // スタンプ獲得済みスポット（通知不要）
+    private var completedSpotIds: Set<String> = []
     
     // MARK: - 調整可能パラメータ
     
-    /// 同じピンへの再通知間隔（秒）
+    /// 同じスポットへの再通知間隔（秒）
     var notificationCooldown: TimeInterval = 1800.0 // 30分
     
     // MARK: - Public Methods
@@ -47,39 +47,39 @@ final class NotificationService {
         }
     }
     
-    /// ピン到着通知を送信
+    /// スポット到着通知を送信
     func sendArrivalNotification(
-        for pin: CustomPin,
+        for spot: Spot,
         distance: CLLocationDistance,
         accuracy: CLLocationDistance
     ) {
         // スタンプ獲得済みチェック
-        if completedPinIds.contains(pin.id) {
-            print("🔕 Notification suppressed (stamp collected): \(pin.title)")
+        if completedSpotIds.contains(spot.id) {
+            print("🔕 Notification suppressed (stamp collected): \(spot.name)")
             return
         }
         
         // クールダウンチェック
-        if let lastTime = notificationHistory[pin.id],
+        if let lastTime = notificationHistory[spot.id],
            Date().timeIntervalSince(lastTime) < notificationCooldown {
             let elapsed = Date().timeIntervalSince(lastTime)
-            print("🔕 Notification suppressed (cooldown: \(Int(elapsed))s): \(pin.title)")
+            print("🔕 Notification suppressed (cooldown: \(Int(elapsed))s): \(spot.name)")
             return
         }
         
         // 通知内容の作成
         let content = UNMutableNotificationContent()
         content.title = "📍 スポット到着！"
-        content.body = "\(pin.title)に到着しました。アプリを開いてスタンプをゲットしよう！"
+        content.body = "\(spot.name)に到着しました。アプリを開いてスタンプをゲットしよう！"
         content.sound = .default
         
         // カテゴリとユーザー情報
-        content.categoryIdentifier = "PIN_ARRIVAL"
+        content.categoryIdentifier = "SPOT_ARRIVAL"
         content.userInfo = [
-            "pinId": pin.id.uuidString,
-            "pinTitle": pin.title,
-            "latitude": pin.coordinate.latitude,
-            "longitude": pin.coordinate.longitude,
+            "spotId": spot.id,
+            "spotName": spot.name,
+            "latitude": spot.coordinate?.latitude ?? 0,
+            "longitude": spot.coordinate?.longitude ?? 0,
             "distance": distance,
             "accuracy": accuracy
         ]
@@ -88,7 +88,7 @@ final class NotificationService {
         content.badge = NSNumber(value: getUnreadNotificationCount() + 1)
         
         // 通知リクエスト
-        let identifier = "pin_\(pin.id.uuidString)_\(Date().timeIntervalSince1970)"
+        let identifier = "spot_\(spot.id)_\(Date().timeIntervalSince1970)"
         let request = UNNotificationRequest(
             identifier: identifier,
             content: content,
@@ -99,32 +99,32 @@ final class NotificationService {
             if let error = error {
                 print("❌ Failed to send notification: \(error.localizedDescription)")
             } else {
-                print("✅ Notification sent: \(pin.title) (distance: \(String(format: "%.1f", distance))m)")
+                print("✅ Notification sent: \(spot.name) (distance: \(String(format: "%.1f", distance))m)")
                 
                 // 履歴を記録
                 DispatchQueue.main.async {
-                    self.notificationHistory[pin.id] = Date()
+                    self.notificationHistory[spot.id] = Date()
                 }
             }
         }
     }
     
     /// スタンプ獲得済みとしてマーク
-    func markAsCompleted(pinId: UUID) {
-        completedPinIds.insert(pinId)
-        print("✅ Pin marked as completed (no more notifications): \(pinId)")
+    func markAsCompleted(spotId: String) {
+        completedSpotIds.insert(spotId)
+        print("✅ Spot marked as completed (no more notifications): \(spotId)")
     }
     
     /// スタンプ獲得状態をリセット
-    func resetCompletion(pinId: UUID) {
-        completedPinIds.remove(pinId)
-        print("🔄 Pin completion reset: \(pinId)")
+    func resetCompletion(spotId: String) {
+        completedSpotIds.remove(spotId)
+        print("🔄 Spot completion reset: \(spotId)")
     }
     
     /// 通知履歴をリセット（再通知可能にする）
-    func resetNotificationHistory(pinId: UUID) {
-        notificationHistory.removeValue(forKey: pinId)
-        print("🔄 Notification history reset: \(pinId)")
+    func resetNotificationHistory(spotId: String) {
+        notificationHistory.removeValue(forKey: spotId)
+        print("🔄 Notification history reset: \(spotId)")
     }
     
     /// すべての通知履歴をリセット
@@ -135,7 +135,7 @@ final class NotificationService {
     
     /// すべての完了状態をリセット
     func resetAllCompletions() {
-        completedPinIds.removeAll()
+        completedSpotIds.removeAll()
         print("🔄 All completions reset")
     }
     

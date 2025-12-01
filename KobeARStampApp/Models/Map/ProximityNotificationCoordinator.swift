@@ -18,8 +18,8 @@ final class ProximityNotificationCoordinator: ObservableObject {
     
     // MARK: - Initialization
     
-    init(pins: [CustomPin], notificationService: NotificationService = .shared) {
-        self.regionMonitor = BackgroundRegionMonitor(pins: pins)
+    init(spots: [Spot], notificationService: NotificationService = .shared) {
+        self.regionMonitor = BackgroundRegionMonitor(spots: spots)
         self.notificationService = notificationService
         
         // デリゲートを設定
@@ -38,19 +38,19 @@ final class ProximityNotificationCoordinator: ObservableObject {
     // MARK: - Public Methods
     
     /// スタンプを獲得したときに呼び出す
-    func onStampCollected(pinId: UUID) {
+    func onStampCollected(spotId: String) {
         // リージョン監視側: 再検知を防ぐ
-        regionMonitor.markAsDetected(pinId: pinId)
+        regionMonitor.markAsDetected(spotId: spotId)
         
         // 通知サービス側: 今後の通知を停止
-        notificationService.markAsCompleted(pinId: pinId)
+        notificationService.markAsCompleted(spotId: spotId)
         
-        print("🎯 Stamp collected: \(pinId)")
+        print("🎯 Stamp collected: \(spotId)")
     }
     
-    /// ピンリストを更新
-    func updatePins(_ newPins: [CustomPin]) {
-        regionMonitor.updatePins(newPins)
+    /// スポットリストを更新
+    func updateSpots(_ newSpots: [Spot]) {
+        regionMonitor.updateSpots(newSpots)
     }
     
     /// すべてをリセット（テスト用）
@@ -61,12 +61,12 @@ final class ProximityNotificationCoordinator: ObservableObject {
         print("🔄 All states reset")
     }
     
-    /// 特定のピンをリセット（再検知・再通知可能にする）
-    func resetPin(pinId: UUID) {
-        regionMonitor.resetDetection(pinId: pinId)
-        notificationService.resetNotificationHistory(pinId: pinId)
-        notificationService.resetCompletion(pinId: pinId)
-        print("🔄 Pin reset: \(pinId)")
+    /// 特定のスポットをリセット（再検知・再通知可能にする）
+    func resetSpot(spotId: String) {
+        regionMonitor.resetDetection(spotId: spotId)
+        notificationService.resetNotificationHistory(spotId: spotId)
+        notificationService.resetCompletion(spotId: spotId)
+        print("🔄 Spot reset: \(spotId)")
     }
     
     /// パラメータをカスタマイズ
@@ -103,15 +103,15 @@ extension ProximityNotificationCoordinator: BackgroundRegionMonitorDelegate {
     
     func regionMonitor(
         _ monitor: BackgroundRegionMonitor,
-        didEnterProximityOf pin: CustomPin,
+        didEnterProximityOf spot: Spot,
         distance: CLLocationDistance,
         accuracy: CLLocationDistance
     ) {
-        print("📍 Proximity detected: \(pin.title) - sending notification")
+        print("📍 Proximity detected: \(spot.name) - sending notification")
         
         // 通知を送信
         notificationService.sendArrivalNotification(
-            for: pin,
+            for: spot,
             distance: distance,
             accuracy: accuracy
         )
