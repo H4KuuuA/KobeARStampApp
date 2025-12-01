@@ -13,6 +13,7 @@ struct KobeARStampAppApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var stampManager = StampManager()
     @StateObject private var proximityNotification: ProximityNotificationCoordinator
+    @StateObject private var appLoader = AppLoaderViewModel()
     
     init() {
         let manager = StampManager()
@@ -22,9 +23,15 @@ struct KobeARStampAppApp: App {
     
     var body: some Scene {
         WindowGroup {
-            HomeView()
-                .environmentObject(proximityNotification)
-                .environmentObject(stampManager)
+            ZStack {
+                if appLoader.isLoading {
+                    SplashView(appLoader: appLoader)
+                } else {
+                    ContentView()
+                        .environmentObject(proximityNotification)
+                        .environmentObject(stampManager)
+                }
+            }
         }
     }
 }

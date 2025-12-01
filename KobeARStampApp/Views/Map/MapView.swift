@@ -31,7 +31,6 @@ struct MapView: View {
             )
             .edgesIgnoringSafeArea(.all)
             .onTapGesture {
-                // マップをタップしたときにスポットの選択を解除
                 NotificationCenter.default.post(name: .spotDeselected, object: nil)
             }
             
