@@ -15,12 +15,15 @@ extension Notification.Name {
     /// スナップショットの撮影が完了したことをUIに知らせるための通知名
     static let snapshotTaken = Notification.Name("snapshotTaken")
     
-    /// カスタムピンがタップされたことを通知
-    static let customPinTapped = Notification.Name("customPinTapped")
+    /// スポットがタップされたことを通知
+    static let spotTapped = Notification.Name("spotTapped")
     
-    /// カスタムピンの選択が解除されたことを通知
-    static let customPinDeselected = Notification.Name("customPinDeselected")
+    /// スポットに接近したことを通知（位置情報ベース）
+    static let spotProximityEntered = Notification.Name("spotProximityEntered")
     
-    /// ローカルを通知をタップしタップしたことを通知
+    /// スポットの選択が解除されたことを通知
+    static let spotDeselected = Notification.Name("spotDeselected")
+    
+    /// ローカル通知をタップしたことを通知
     static let openPinDetail = Notification.Name("openPinDetail")
 }

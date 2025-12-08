@@ -8,14 +8,14 @@
 import SwiftUI
 
 struct ContentView: View {
+    @EnvironmentObject var appLoader: AppLoaderViewModel
+    
     var body: some View {
         HomeView()
     }
-    
-    
 }
-#Preview {
-        ContentView()
-    }
-    
 
+#Preview {
+    ContentView()
+        .environmentObject(AppLoaderViewModel())
+}

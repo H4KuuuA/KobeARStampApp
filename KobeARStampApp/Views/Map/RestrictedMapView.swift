@@ -11,7 +11,7 @@ import MapKit
 struct RestrictedMapView: UIViewRepresentable {
     let centerCoordinate: CLLocationCoordinate2D
     let radiusInMeters: CLLocationDistance
-    let pins: [CustomPin]
+    let spots: [Spot]
     
     /// 中心座標と半径をもとに、表示・移動・ズーム範囲を制限した MKMapView を生成する
     /// 円形オーバーレイを表示して、範囲の視覚的な目印も追加する
@@ -43,11 +43,11 @@ struct RestrictedMapView: UIViewRepresentable {
         )
         mapView.setCameraZoomRange(zoomRange, animated: false)
         
-        // カスタムピン
-        let annotations = pins.map { CustomPinAnnotation(pin: $0)}
+        // スポットアノテーション
+        let annotations = spots.map { SpotAnnotation(spot: $0)}
         mapView.addAnnotations(annotations)
         
-        // ★ 空白タップ検知用のジェスチャー追加
+        // 空白タップ検知用のジェスチャー追加
         let tapGesture = UITapGestureRecognizer(
             target: context.coordinator,
             action: #selector(Coordinator.handleMapTap(_:))
@@ -68,7 +68,7 @@ struct RestrictedMapView: UIViewRepresentable {
     }
     
     class Coordinator: NSObject, MKMapViewDelegate, UIGestureRecognizerDelegate {
-        private var pinLastTapTimes: [String: Date] = [:]
+        private var spotLastTapTimes: [String: Date] = [:]
         private let tapDebounceInterval: TimeInterval = 0.3
         
         func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
@@ -77,14 +77,14 @@ struct RestrictedMapView: UIViewRepresentable {
                 return nil
             }
             
-            // CustomPinAnnotation の場合だけカスタムビューを使う
-            if let customAnnotation = annotation as? CustomPinAnnotation {
-                let identifier = CustomPinAnnotationView.reuseIdentifier
+            // SpotAnnotation の場合だけカスタムビューを使う
+            if let spotAnnotation = annotation as? SpotAnnotation {
+                let identifier = SpotAnnotationViewWrapper.reuseIdentifier
                 
-                var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: identifier) as? CustomPinAnnotationView
+                var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: identifier) as? SpotAnnotationViewWrapper
                 
                 if annotationView == nil {
-                    annotationView = CustomPinAnnotationView(annotation: customAnnotation, reuseIdentifier: identifier)
+                    annotationView = SpotAnnotationViewWrapper(annotation: spotAnnotation, reuseIdentifier: identifier)
                 } else {
                     // annotation の再代入を避けることで willSet 発火を回避
                     // 更新タイミングが不要なら何もしない
@@ -97,36 +97,36 @@ struct RestrictedMapView: UIViewRepresentable {
         }
         
         func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
-            guard let customAnnotation = view.annotation as? CustomPinAnnotation else { return }
+            guard let spotAnnotation = view.annotation as? SpotAnnotation else { return }
             
-            let pinId = customAnnotation.customPin.id.uuidString
+            let spotId = spotAnnotation.spot.id
             let currentTime = Date()
             
             // デバウンス処理: 0.3秒以内のタップは無視
-            if let lastTap = pinLastTapTimes[pinId],
+            if let lastTap = spotLastTapTimes[spotId],
                currentTime.timeIntervalSince(lastTap) < tapDebounceInterval {
-                print("デバウンス: \(customAnnotation.title ?? "No title") のタップが早すぎます - 無視します")
+                print("デバウンス: \(spotAnnotation.title ?? "No title") のタップが早すぎます - 無視します")
                 // 選択を解除して次回のタップに備える
                 mapView.deselectAnnotation(view.annotation, animated: false)
                 return
             }
             
             // 有効なタップとして処理
-            pinLastTapTimes[pinId] = currentTime
+            spotLastTapTimes[spotId] = currentTime
             
-            print("\(customAnnotation.title ?? "No title") selected")
+            print("\(spotAnnotation.title ?? "No title") selected")
             
             // 通知処理
             NotificationCenter.default.post(
-                name: Notification.Name.customPinTapped,
-                object: customAnnotation.customPin
+                name: .spotTapped,
+                object: spotAnnotation.spot
             )
             
             // 選択を解除して連続タップを可能にする
             mapView.deselectAnnotation(view.annotation, animated: false)
         }
         
-        // ★ マップの空白タップを検知するハンドラー
+        // マップの空白タップを検知するハンドラー
         @objc func handleMapTap(_ gesture: UITapGestureRecognizer) {
             guard let mapView = gesture.view as? MKMapView else { return }
             
@@ -140,21 +140,21 @@ struct RestrictedMapView: UIViewRepresentable {
             )
             
             let annotations = mapView.annotations(in: mapRect)
-            let hasCustomPin = annotations.contains { annotation in
-                annotation is CustomPinAnnotation
+            let hasSpotAnnotation = annotations.contains { annotation in
+                annotation is SpotAnnotation
             }
             
             // アノテーションがない場所をタップした場合のみ通知
-            if !hasCustomPin {
+            if !hasSpotAnnotation {
                 print("マップの空白部分がタップされました")
                 NotificationCenter.default.post(
-                    name: Notification.Name.customPinDeselected,
+                    name: .spotDeselected,
                     object: nil
                 )
             }
         }
         
-        // ★ ジェスチャーとマップのタッチを共存させる
+        // ジェスチャーとマップのタッチを共存させる
         func gestureRecognizer(
             _ gestureRecognizer: UIGestureRecognizer,
             shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer

@@ -12,7 +12,6 @@ struct MainTabView: View {
     @State var showARCameraView = false
     
     var body: some View {
-        // AnimationSideBarで全体をラップ
         AnimationSideBar(
             rotatesWhenExpands: true,
             disablesInteraction: true,
@@ -20,9 +19,7 @@ struct MainTabView: View {
             cornerRadius: 25,
             showMenu: $showMenu
         ) { safeArea in
-            // メインコンテンツ
             VStack(spacing: 0) {
-                // Navigation Bar（最上部に固定）
                 CustomNavigationBar(
                     onMenuTap: {
                         withAnimation(.snappy(duration: 0.3, extraBounce: 0)) {
@@ -31,18 +28,14 @@ struct MainTabView: View {
                     },
                     onNotificationTap: {
                         showNotification = true
-                        print("🔔 Notification tapped")
                     },
                     showMenu: $showMenu
                 )
                 .padding(.top, safeArea.top)
                 .background(Color.white)
-                .zIndex(100) // 最前面に表示
+                .zIndex(100)
                 
-                
-                // Main Content
                 ZStack {
-                    // 地図やその他のメインコンテンツ
                     Group {
                         switch activeTab {
                         case .home:
@@ -52,9 +45,7 @@ struct MainTabView: View {
                         }
                     }
                     
-                    // タブバーとARボタン（下部に配置）
                     VStack(spacing: 0) {
-                        // StampDemoViewは.homeの時のみ表示
                         if activeTab == .home {
                             StampDemoView()
                         }
@@ -70,7 +61,7 @@ struct MainTabView: View {
                             }
                         }
                     }
-                    .zIndex(99) // タブバーも前面に表示
+                    .zIndex(99)
                 }
             }
             .sheet(isPresented: $showNotification) {
@@ -83,7 +74,6 @@ struct MainTabView: View {
         }
     }
     
-    /// Custom Tab Bar
     @ViewBuilder
     func CustomTabBar() -> some View {
         HStack(spacing: 60) {
@@ -122,27 +112,21 @@ struct MainTabView: View {
         .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: -2)
     }
     
-    /// AR Camera Button
     @ViewBuilder
     func ARCameraButton() -> some View {
         Button(action: {
             showARCameraView = true
-            // カメラ起動処理
-            print("🎥 AR Camera button tapped")
         }) {
             ZStack {
-                // 外側の黒丸
                 Circle()
                     .fill(Color("DarkBlue"))
                     .frame(width: 80, height: 80)
                     .shadow(color: .black.opacity(0.25), radius: 8, x: 0, y: 4)
                 
-                // 内側の白縁サークル
                 Circle()
                     .stroke(Color.white, lineWidth: 1.2)
                     .frame(width: 74, height: 74)
                 
-                // 中央の SF Symbol アイコン
                 Image(systemName: "arkit")
                     .resizable()
                     .scaledToFit()
@@ -154,13 +138,12 @@ struct MainTabView: View {
         .fullScreenCover(isPresented: $showARCameraView) {
             let previewSpot = StampManager().allSpots.first ?? Spot(id: "preview-spot", name: "Preview Spot", placeholderImageName: "questionmark.circle", modelName: "box.usdz")
             
-            // Corrected the argument order: activeTab must come before stampManager
             ARCameraView(spot: previewSpot,
-                         activeTab: .constant(.home), // Moved activeTab before stampManager
+                         activeTab: .constant(.home),
                          stampManager: StampManager())
-
         }
     }
+    
     @ViewBuilder
     func SideMenuView(_ safeArea: UIEdgeInsets) -> some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -202,6 +185,7 @@ struct MainTabView: View {
         })
     }
 }
+
 #Preview {
     MainTabView()
 }
