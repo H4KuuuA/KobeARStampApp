@@ -10,6 +10,7 @@ import SwiftUI
 struct HomeView: View {
     var body: some View {
         MainTabView()
+            .preferredColorScheme(.light)  // 常にライトモードに固定
     }
 }
 

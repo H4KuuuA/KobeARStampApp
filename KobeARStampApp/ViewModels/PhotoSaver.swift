@@ -19,7 +19,7 @@ class PhotoSaver: NSObject, ObservableObject {
     func saveImage(_ image: UIImage) {
         // 保存処理が完了するまで自身を強参照で保持する
         // (コールバックが呼ばれる前にインスタンスが破棄されるのを防ぐため)
-        var strongSelf: PhotoSaver? = self
+        let strongSelf: PhotoSaver? = self
         
         UIImageWriteToSavedPhotosAlbum(image, self, #selector(image(_:didFinishSavingWithError:contextInfo:)), nil)
         

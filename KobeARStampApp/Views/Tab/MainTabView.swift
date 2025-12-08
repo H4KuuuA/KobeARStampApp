@@ -49,13 +49,16 @@ struct MainTabView: View {
                         case .home:
                             MapView()
                         case .stamp:
-                            Rectangle().fill(Color.blue)
+                            StampCardView(stampManager: StampManager())
                         }
                     }
                     
                     // タブバーとARボタン（下部に配置）
                     VStack(spacing: 0) {
-                        StampDemoView()
+                        // StampDemoViewは.homeの時のみ表示
+                        if activeTab == .home {
+                            StampDemoView()
+                        }
                         Spacer()
                         ZStack {
                             CustomTabBar()
