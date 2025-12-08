@@ -28,6 +28,7 @@ struct KobeARStampAppApp: App {
                     SplashView(appLoader: appLoader)
                 } else {
                     ContentView()
+                        .environmentObject(appLoader)            
                         .environmentObject(proximityNotification)
                         .environmentObject(stampManager)
                 }
