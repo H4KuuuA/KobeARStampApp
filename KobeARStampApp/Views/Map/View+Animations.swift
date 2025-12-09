@@ -1,49 +1,43 @@
-//
-//  View+Animations.swift
-//  KobeARStampApp
-//
-//  Created by 大江悠都 on 2025/07/18.
-//
-
-// View+Animations.swift
-
 import SwiftUI
 
 // MARK: - アニメーション用 View 拡張
 extension View {
     /// パルスエフェクト用のアニメーション（修正版）
     func pulseEffect(isActive: Bool, color: Color, baseSize: CGFloat, duration: Double = 0.8) -> some View {
-        ZStack {
-            self
-            
-            ForEach(0..<3, id: \.self) { index in
-                Circle()
-                    .stroke(color.opacity(0.4), lineWidth: 2)
-                    .frame(width: baseSize * 1.5, height: baseSize * 1.5)
-                    .scaleEffect(isActive ? 2.0 + Double(index) * 0.3 : 1.0)
-                    .opacity(isActive ? 0.8 - Double(index) * 0.2 : 0.0)
-                    .animation(
-                        isActive ?
-                        .easeOut(duration: duration).delay(Double(index) * 0.1).repeatForever(autoreverses: false) :
-                        .easeOut(duration: 0.3),
-                        value: isActive
-                    )
+        self.overlay(
+            ZStack {
+                ForEach(0..<3, id: \.self) { index in
+                    Circle()
+                        .stroke(color.opacity(0.4), lineWidth: 2)
+                        .frame(width: baseSize * 1.5, height: baseSize * 1.5)
+                        .scaleEffect(isActive ? 2.0 + Double(index) * 0.3 : 1.0)
+                        .opacity(isActive ? 0 : 0.8)
+                        .animation(
+                            isActive ?
+                                .easeOut(duration: duration)
+                                .repeatForever(autoreverses: false)
+                                .delay(Double(index) * 0.2)
+                                : .easeOut(duration: 0.3),
+                            value: isActive
+                        )
+                }
             }
-        }
+            .opacity(isActive ? 1.0 : 0.0)
+            .allowsHitTesting(false)
+        )
     }
 
     /// グロー効果のアニメーション
     func glowEffect(isActive: Bool, color: Color, size: CGFloat, intensity: Double = 0.8) -> some View {
-        ZStack {
-            self
-            
+        self.overlay(
             Circle()
                 .fill(color.opacity(0.3))
                 .frame(width: size, height: size)
                 .blur(radius: 8)
                 .opacity(isActive ? intensity : 0.0)
                 .animation(.easeInOut(duration: 0.3), value: isActive)
-        }
+                .allowsHitTesting(false)
+        )
     }
 
     /// 選択時のスケール・シャドウ効果

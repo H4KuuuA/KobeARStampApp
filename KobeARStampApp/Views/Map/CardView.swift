@@ -1,5 +1,5 @@
 //
-//  CustomPinDetailView.swift
+//  SpotCardView.swift
 //  KobeARStampApp
 //
 //  Created by 大江悠都 on 2025/07/15.
@@ -7,50 +7,32 @@
 
 import SwiftUI
 
-struct CardView: View {
-    let pin: CustomPin
-    let onDismiss: () -> Void // ← 親からdismiss動作を注入
-
+struct SpotCardView: View {
+    let spot: Spot
+    @ObservedObject var stampManager: StampManager
+    let onDismiss: () -> Void
+    
     var body: some View {
         ZStack(alignment: .topTrailing) {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .top, spacing: 0) {
-                    if let imageURL = pin.imageURL {
-                        AsyncImage(url: imageURL) { phase in
-                            switch phase {
-                            case .empty:
-                                ProgressView()
-                                    .frame(width: 150, height: 120)
-                            case .success(let image):
-                                image
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 150, height: 80)
-                                    .clipped()
-                                    .cornerRadius(12)
-                            case .failure:
-                                Image(systemName: "photo")
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(width: 150, height: 120)
-                                    .foregroundColor(.gray)
-                            @unknown default:
-                                EmptyView()
-                            }
-                        }
-                    }
-
+                    // 画像表示
+                    imageView
+                    
+                    // スポット情報
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(pin.title)
+                        Text(spot.name)
                             .font(.title2)
                             .bold()
-
-                        Text(pin.subtitle ?? "")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-
+                        
+                        if let subtitle = spot.subtitle {
+                            Text(subtitle)
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                        
                         HStack(spacing: 24) {
-                            if let category = pin.category {
+                            if let category = spot.category {
                                 Text(category)
                                     .font(.caption)
                                     .foregroundColor(.white)
@@ -59,15 +41,8 @@ struct CardView: View {
                                     .background(Color.blue)
                                     .cornerRadius(10)
                             }
-
-                            HStack(spacing: 4) {
-                                Image(systemName: "mappin.and.ellipse")
-                                    .foregroundStyle(Color.black.opacity(0.85))
-
-                                Text("約350m") // 仮の距離
-                                    .font(.caption)
-                                    .foregroundStyle(Color.black.opacity(0.85))
-                            }
+                            
+                            StampStatusBadge(isAcquired: stampManager.isStampAcquired(spotID: spot.id))
                         }
                         .padding(.top, 6)
                     }
@@ -82,8 +57,8 @@ struct CardView: View {
                     .fill(.regularMaterial)
                     .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
             )
-
-            // ✕ボタン（カードの外にオフセットして表示）
+            
+            // ×ボタン
             Button(action: onDismiss) {
                 Image(systemName: "xmark.circle.fill")
                     .resizable()
@@ -96,9 +71,61 @@ struct CardView: View {
             .zIndex(1)
         }
     }
+    
+    // MARK: - Image View
+    @ViewBuilder
+    private var imageView: some View {
+        if let imageURL = spot.imageURL {
+            // 外部URLから画像を取得（ローカル画像をフォールバックとして表示）
+            AsyncImage(url: imageURL) { phase in
+                switch phase {
+                case .empty:
+                    // 読み込み中: ローカル画像を表示
+                    placeholderImage
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 150, height: 120)
+                        .clipped()
+                        .cornerRadius(12)
+                case .failure:
+                    // 取得失敗: ローカル画像を表示
+                    placeholderImage
+                @unknown default:
+                    placeholderImage
+                }
+            }
+        } else {
+            // URLがない場合: ローカル画像を使用
+            placeholderImage
+        }
+    }
+    
+    @ViewBuilder
+    private var placeholderImage: some View {
+        if let localImage = UIImage(named: spot.placeholderImageName) {
+            Image(uiImage: localImage)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 150, height: 120)
+                .clipped()
+                .cornerRadius(12)
+        } else {
+            Image(systemName: "photo")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 150, height: 120)
+                .foregroundColor(.gray)
+        }
+    }
 }
 
 #Preview {
-    CardView(pin: mockPins[0], onDismiss: {})
-        .background(Color.gray.opacity(0.2))
+    SpotCardView(
+        spot: StampManager.defaultSpots[0],
+        stampManager: StampManager(),
+        onDismiss: {}
+    )
+    .background(Color.gray.opacity(0.2))
 }

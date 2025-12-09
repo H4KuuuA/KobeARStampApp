@@ -1,5 +1,5 @@
 //
-//  PinDetailSheetView.swift
+//  SpotDetailSheetView.swift
 //  KobeARStampApp
 //
 //  Created by 大江悠都 on 2025/07/18.
@@ -7,12 +7,12 @@
 
 import SwiftUI
 
-struct PinDetailSheetView: View {
-    let pin: CustomPin
+struct SpotDetailSheetView: View {
+    let spot: Spot
     @Environment(\.dismiss) private var dismiss
     
-    // ピンのエリア内にいるかどうかの状態（将来的に実装予定）
-    @State private var isInPinArea: Bool = false
+    // スポットのエリア内にいるかどうかの状態（将来的に実装予定）
+    @State private var isInSpotArea: Bool = false
     
     var body: some View {
         ZStack {
@@ -31,7 +31,7 @@ struct PinDetailSheetView: View {
                         basicInfoSection
                         
                         // 詳細説明セクション
-                        if let description = pin.description, !description.isEmpty {
+                        if let description = spot.description, !description.isEmpty {
                             descriptionSection(description)
                         }
                         
@@ -67,7 +67,7 @@ struct PinDetailSheetView: View {
     // MARK: - Header Image
     private var headerImageView: some View {
         ZStack(alignment: .bottomLeading) {
-            if let imageURL = pin.imageURL {
+            if let imageURL = spot.imageURL {
                 AsyncImage(url: imageURL) { phase in
                     switch phase {
                     case .empty:
@@ -125,7 +125,7 @@ struct PinDetailSheetView: View {
             }
             
             // カテゴリバッジ（画像上に配置）
-            if let category = pin.category {
+            if let category = spot.category {
                 categoryBadge(category)
                     .padding(.leading, 20)
                     .padding(.bottom, 20)
@@ -137,12 +137,12 @@ struct PinDetailSheetView: View {
     private var titleSection: some View {
         HStack(alignment: .top, spacing: 16) {
             VStack(alignment: .leading, spacing: 8) {
-                Text(pin.title)
+                Text(spot.name)
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .foregroundColor(.primary)
                 
-                if let subtitle = pin.subtitle, !subtitle.isEmpty {
+                if let subtitle = spot.subtitle, !subtitle.isEmpty {
                     Text(subtitle)
                         .font(.title3)
                         .foregroundColor(.secondary)
@@ -160,7 +160,7 @@ struct PinDetailSheetView: View {
     // MARK: - Action Button
     private var actionButton: some View {
         Button(action: {
-            if isInPinArea {
+            if isInSpotArea {
                 // カメラを起動する処理（将来実装）
                 launchCamera()
             } else {
@@ -169,11 +169,11 @@ struct PinDetailSheetView: View {
             }
         }) {
             VStack(spacing: 6) {
-                Image(systemName: isInPinArea ? "camera.fill" : "location.north.line.fill")
+                Image(systemName: isInSpotArea ? "camera.fill" : "location.north.line.fill")
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(.white)
                 
-                Text(isInPinArea ? "カメラ" : "経路")
+                Text(isInSpotArea ? "カメラ" : "経路")
                     .font(.caption)
                     .fontWeight(.semibold)
                     .foregroundColor(.white)
@@ -183,7 +183,7 @@ struct PinDetailSheetView: View {
                 Circle()
                     .fill(
                         LinearGradient(
-                            gradient: Gradient(colors: isInPinArea ?
+                            gradient: Gradient(colors: isInSpotArea ?
                                 [Color.green, Color.green.opacity(0.8)] :
                                 [Color.blue, Color.blue.opacity(0.8)]
                             ),
@@ -192,7 +192,7 @@ struct PinDetailSheetView: View {
                         )
                     )
                     .shadow(
-                        color: (isInPinArea ? Color.green : Color.blue).opacity(0.3),
+                        color: (isInSpotArea ? Color.green : Color.blue).opacity(0.3),
                         radius: 8,
                         x: 0,
                         y: 4
@@ -200,8 +200,8 @@ struct PinDetailSheetView: View {
             )
         }
         .buttonStyle(PlainButtonStyle())
-        .scaleEffect(isInPinArea ? 1.05 : 1.0)
-        .animation(.easeInOut(duration: 0.2), value: isInPinArea)
+        .scaleEffect(isInSpotArea ? 1.05 : 1.0)
+        .animation(.easeInOut(duration: 0.2), value: isInSpotArea)
     }
     
     // MARK: - Basic Info Section
@@ -264,16 +264,16 @@ struct PinDetailSheetView: View {
                     .foregroundColor(.primary)
             }
             
+            let coordinate = spot.coordinate
             VStack(alignment: .leading, spacing: 12) {
                 InfoRow(
                     icon: "globe.asia.australia",
                     title: "緯度, 経度",
-                    value: String(format: "%.6f, %.6f", pin.coordinate.latitude, pin.coordinate.longitude),
+                    value: String(format: "%.6f, %.6f", coordinate.latitude, coordinate.longitude),
                     iconColor: .blue
                 )
             }
 
-            
             // 地図で開くボタン（オプション）
             Button(action: {
                 openInMaps()
@@ -313,7 +313,8 @@ struct PinDetailSheetView: View {
     
     // MARK: - Helper Functions
     private func openInMaps() {
-        let url = URL(string: "http://maps.apple.com/?ll=\(pin.coordinate.latitude),\(pin.coordinate.longitude)&q=\(pin.title)")!
+        let coordinate = spot.coordinate
+        let url = URL(string: "http://maps.apple.com/?ll=\(coordinate.latitude),\(coordinate.longitude)&q=\(spot.name)")!
         if UIApplication.shared.canOpenURL(url) {
             UIApplication.shared.open(url)
         }
@@ -322,19 +323,19 @@ struct PinDetailSheetView: View {
     // MARK: - Action Functions (将来実装予定)
     private func launchCamera() {
         // カメラを起動する処理をここに実装
-        print("カメラを起動します - Pin: \(pin.title)")
+        print("カメラを起動します - Spot: \(spot.name)")
         // 例: ARスタンプ機能やカメラビューを表示
     }
     
     private func showRoute() {
         // 経路を表示する処理をここに実装
-        print("経路を表示します - Pin: \(pin.title)")
+        print("経路を表示します - Spot: \(spot.name)")
         // 例: マップアプリで経路を表示、またはアプリ内ナビゲーション
     }
     
     // MARK: - Demo Function (開発/テスト用)
-    private func togglePinAreaStatus() {
-        isInPinArea.toggle()
+    private func toggleSpotAreaStatus() {
+        isInSpotArea.toggle()
     }
 }
 
@@ -369,5 +370,5 @@ struct InfoRow: View {
 
 // MARK: - Preview
 #Preview {
-    PinDetailSheetView(pin: mockPins[0])
+    SpotDetailSheetView(spot: StampManager.defaultSpots[0])
 }

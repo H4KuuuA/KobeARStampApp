@@ -14,7 +14,7 @@ class ProximityMonitor: ObservableObject {
     // MARK: - Properties
     private var cancellables = Set<AnyCancellable>()
     private let locationManager: LocationManager
-    private var pins: [CustomPin]
+    private var spots: [Spot]
     
     // 判定ロジックを担当するクラス
     private let detector: ProximityDetector
@@ -23,16 +23,16 @@ class ProximityMonitor: ObservableObject {
     private let notificationManager = NotificationManager.shared
     
     // 現在の近接状態
-    private var currentState: ProximityState = .outside
+    private var currentState: ProximityStateSpot = .outside
     
     // MARK: - Initialization
     init(
         locationManager: LocationManager = .shared,
-        pins: [CustomPin],
+        spots: [Spot],
         detector: ProximityDetector = ProximityDetector()
     ) {
         self.locationManager = locationManager
-        self.pins = pins
+        self.spots = spots
         self.detector = detector
         
         setupLocationObserver()
@@ -73,9 +73,9 @@ class ProximityMonitor: ObservableObject {
         let currentLocation = CLLocation(latitude: latitude, longitude: longitude)
         
         // ProximityDetectorで状態を判定
-        let newState = detector.detectProximityState(
+        let newState = detector.detectProximityStateForSpot(
             currentLocation: currentLocation,
-            pins: pins,
+            spots: spots,
             previousState: currentState
         )
         
@@ -87,106 +87,108 @@ class ProximityMonitor: ObservableObject {
     }
     
     // MARK: - State Change Handling
-    private func handleStateChange(from oldState: ProximityState, to newState: ProximityState) {
+    private func handleStateChange(from oldState: ProximityStateSpot, to newState: ProximityStateSpot) {
         switch (oldState, newState) {
-        case (.outside, .inside(let pin)):
+        case (.outside, .inside(let spot)):
             // 圏外 → 圏内: 侵入
-            onPinEntered(pin)
+            onSpotEntered(spot)
             
-        case (.inside(let oldPin), .inside(let newPin)):
-            // 圏内 → 別の圏内: ピン切り替え
-            if !detector.isSamePin(oldPin, newPin) {
-                onPinSwitched(from: oldPin, to: newPin)
+        case (.inside(let oldSpot), .inside(let newSpot)):
+            // 圏内 → 別の圏内: スポット切り替え
+            if oldSpot.id != newSpot.id {
+                onSpotSwitched(from: oldSpot, to: newSpot)
             }
             
-        case (.inside(let pin), .outside):
+        case (.inside(let spot), .outside):
             // 圏内 → 圏外: 退出
-            onPinExited(pin)
+            onSpotExited(spot)
             
         case (.outside, .outside):
-            // 変化なし（通常ここには来ない）
+            // 変化なし(通常ここには来ない)
             break
         }
     }
     
     // MARK: - Event Handlers
-    private func onPinEntered(_ pin: CustomPin) {
-        // AR表示用の既存の通知を送信
+    private func onSpotEntered(_ spot: Spot) {
+        // AR表示用の通知を送信（接近時は波形エフェクト）
+        print("📤 ProximityMonitor: .spotProximityEntered 通知を送信 - \(spot.name)")
         NotificationCenter.default.post(
-            name: .customPinTapped,
-            object: pin
+            name: .spotProximityEntered,
+            object: spot
         )
         
-        // 1. iPhoneのシステム通知を送信（簡潔な文章）
+        // 1. iPhoneのシステム通知を送信(簡潔な文章)
         sendSystemNotification(
-            title: pin.title,
+            title: spot.name,
             body: "スポットに到着しました"
         )
         
-        // 2. アプリ内通知リストに追加（詳細な文章）
+        // 2. アプリ内通知リストに追加(詳細な文章)
         let notification = NotificationItem(
             type: .pinProximity,
-            title: pin.title,
-            message: "スポットに到着しました！ARスタンプを獲得できます",
-            relatedPinID: pin.id.uuidString,
+            title: spot.name,
+            message: "スポットに到着しました!ARスタンプを獲得できます",
+            relatedPinID: spot.id,
             metadata: [
-                "latitude": String(pin.coordinate.latitude),
-                "longitude": String(pin.coordinate.longitude)
+                "latitude": String(spot.coordinate.latitude),
+                "longitude": String(spot.coordinate.longitude)
             ]
         )
         notificationManager.addNotification(notification)
         
-        print("📍 Entered proximity of pin: \(pin.title) (ID: \(pin.id))")
+        print("📍 Entered proximity of spot: \(spot.name) (ID: \(spot.id))")
     }
     
-    private func onPinSwitched(from oldPin: CustomPin, to newPin: CustomPin) {
-        // AR表示の更新
-        NotificationCenter.default.post(name: .customPinDeselected, object: nil)
+    private func onSpotSwitched(from oldSpot: Spot, to newSpot: Spot) {
+        // AR表示の更新（接近時は波形エフェクト）
+        NotificationCenter.default.post(name: .spotDeselected, object: nil)
+        print("📤 ProximityMonitor: .spotProximityEntered 通知を送信 - \(newSpot.name)")
         NotificationCenter.default.post(
-            name: .customPinTapped,
-            object: newPin
+            name: .spotProximityEntered,
+            object: newSpot
         )
         
         // システム通知
         sendSystemNotification(
-            title: newPin.title,
+            title: newSpot.name,
             body: "スポットに到着しました"
         )
         
         // アプリ内通知
         let notification = NotificationItem(
             type: .pinProximity,
-            title: newPin.title,
-            message: "スポットに到着しました！ARスタンプを獲得できます",
-            relatedPinID: newPin.id.uuidString
+            title: newSpot.name,
+            message: "スポットに到着しました!ARスタンプを獲得できます",
+            relatedPinID: newSpot.id
         )
         Task { @MainActor in
             notificationManager.addNotification(notification)
         }
         
-        print("🔄 Switched from pin: \(oldPin.title) to pin: \(newPin.title)")
+        print("🔄 Switched from spot: \(oldSpot.name) to spot: \(newSpot.name)")
     }
     
-    private func onPinExited(_ pin: CustomPin) {
+    private func onSpotExited(_ spot: Spot) {
         // AR表示の解除
-        NotificationCenter.default.post(name: .customPinDeselected, object: nil)
+        NotificationCenter.default.post(name: .spotDeselected, object: nil)
         
-        print("🚶 Exited proximity of pin: \(pin.title) (ID: \(pin.id))")
+        print("🚶 Exited proximity of spot: \(spot.name) (ID: \(spot.id))")
     }
     
     // MARK: - System Notification
     
     /// iPhoneのシステム通知を送信
     /// - Parameters:
-    ///   - title: 通知のタイトル（簡潔に）
-    ///   - body: 通知の本文（簡潔に）
+    ///   - title: 通知のタイトル(簡潔に)
+    ///   - body: 通知の本文(簡潔に)
     private func sendSystemNotification(title: String, body: String) {
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
         content.sound = .default
         
-        // バッジ数を1に設定（iOS 16以降の推奨方法）
+        // バッジ数を1に設定(iOS 16以降の推奨方法)
         content.badge = 1
         
         // すぐに通知を表示
@@ -207,30 +209,75 @@ class ProximityMonitor: ObservableObject {
     
     // MARK: - Public Methods
     
-    /// ピンリストを更新
-    func updatePins(_ newPins: [CustomPin]) {
-        self.pins = newPins
+    /// スポットリストを更新
+    func updateSpots(_ newSpots: [Spot]) {
+        self.spots = newSpots
         
-        // 現在アクティブなピンが新しいリストに存在しない場合は解除
-        if let activePin = currentState.activePin,
-           !newPins.contains(where: { $0.id.uuidString == activePin.id.uuidString }) {
-            onPinExited(activePin)
+        // 現在アクティブなスポットが新しいリストに存在しない場合は解除
+        if let activeSpot = currentState.activeSpot,
+           !newSpots.contains(where: { $0.id == activeSpot.id }) {
+            onSpotExited(activeSpot)
             currentState = .outside
         }
     }
     
-    /// 手動でピンをアクティブにする（タップ時など）
-    func manuallySelectPin(_ pin: CustomPin) {
-        currentState = .inside(pin)
+    /// 手動でスポットをアクティブにする(タップ時など)
+    func manuallySelectSpot(_ spot: Spot) {
+        currentState = .inside(spot)
     }
     
-    /// 手動でピンを解除する
-    func manuallyDeselectPin() {
+    /// 手動でスポットを解除する
+    func manuallyDeselectSpot() {
         currentState = .outside
     }
     
-    /// 現在の状態を取得（デバッグ用）
-    func getCurrentState() -> ProximityState {
+    /// 現在の状態を取得(デバッグ用)
+    func getCurrentState() -> ProximityStateSpot {
         return currentState
     }
 }
+
+// MARK: - ProximityState for Spot
+
+enum ProximityStateSpot: Equatable {
+    case outside
+    case inside(Spot)
+    
+    var activeSpot: Spot? {
+        if case .inside(let spot) = self {
+            return spot
+        }
+        return nil
+    }
+    
+    static func == (lhs: ProximityStateSpot, rhs: ProximityStateSpot) -> Bool {
+        switch (lhs, rhs) {
+        case (.outside, .outside):
+            return true
+        case (.inside(let lhsSpot), .inside(let rhsSpot)):
+            return lhsSpot.id == rhsSpot.id
+        default:
+            return false
+        }
+    }
+}
+
+// MARK: - ProximityDetector Extension for Spot
+
+extension ProximityDetector {
+    
+    /// Spot用の近接状態判定
+    func detectProximityStateForSpot(
+        currentLocation: CLLocation,
+        spots: [Spot],
+        previousState: ProximityStateSpot
+    ) -> ProximityStateSpot {
+        
+        guard let nearestSpot = findNearestSpot(from: currentLocation, in: spots) else {
+            return .outside
+        }
+        
+        return .inside(nearestSpot.spot)
+    }
+}
+

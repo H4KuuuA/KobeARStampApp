@@ -289,7 +289,7 @@ class StampManager: ObservableObject {
     #endif
 }
 
-// MARK: - Default Spots (mockPinsに対応した10箇所)
+// MARK: - Default Spots (mockPinsに対応した10箇所 + 説明文 + マップ表示情報)
 
 extension StampManager {
     static let defaultSpots: [Spot] = [
@@ -300,7 +300,10 @@ extension StampManager {
             modelName: "Dragon_2.5_For_Animations.usdz",
             coordinate: CLLocationCoordinate2D(latitude: 34.70622423097614, longitude: 135.21616725739096),
             subtitle: "灘駅北側の待ち合わせ広場",
-            category: "公園"
+            category: "公園",
+            description: "灘駅の北口にある広場。集合や待ち合わせに便利なスポットです。",
+            pinColorName: "#FF0000",
+            imageURL: URL(string: "https://example.com/images/nada_north_plaza.png")
         ),
         Spot(
             id: "minume-shrine",
@@ -309,7 +312,10 @@ extension StampManager {
             modelName: "Dragon_2.5_For_Animations.usdz",
             coordinate: CLLocationCoordinate2D(latitude: 34.70344357985072, longitude: 135.21879732451967),
             subtitle: "海風香る縁切りの社",
-            category: "文化"
+            category: "文化",
+            description: "敏馬神社は、灘区の海沿いに位置する歴史ある神社です。古くから水神を祀り、漁業や航海の守護とともに、縁切りの神としても知られています。海風に包まれ、灘の人々の信仰と文化を今に伝える神社です。",
+            pinColorName: "#0000FF",
+            imageURL: URL(string: "https://example.com/images/nada_south_cafe.png")
         ),
         Spot(
             id: "nagisa-park",
@@ -318,7 +324,10 @@ extension StampManager {
             modelName: "Dragon_2.5_For_Animations.usdz",
             coordinate: CLLocationCoordinate2D(latitude: 34.6970625279125, longitude: 135.21454865587015),
             subtitle: "海風とアートが彩る公園",
-            category: "公園"
+            category: "公園",
+            description: "なぎさ公園は灘区の海沿いに広がる都市公園で、芝生広場やウォーキングコース、アートモニュメントが楽しめる憩いの場です。",
+            pinColorName: "#00FF00",
+            imageURL: URL(string: "https://example.com/images/nada_central_park.png")
         ),
         Spot(
             id: "saigo-river-park",
@@ -327,7 +336,10 @@ extension StampManager {
             modelName: "Dragon_2.5_For_Animations.usdz",
             coordinate: CLLocationCoordinate2D(latitude: 34.702412041570284, longitude: 135.22474839795566),
             subtitle: "川のそばでバスケも遊びも",
-            category: "公園"
+            category: "公園",
+            description: "住宅街にひっそり佇む 西郷川河口公園 は、河口ならではの開放感と桜が楽しめる小さな都市公園。バスケットゴールも３箇所あり、遊びとくつろぎが両立する場所です。",
+            pinColorName: "#FFFF00",
+            imageURL: URL(string: "https://example.com/images/rokkodo_gallery.png")
         ),
         Spot(
             id: "museum-road",
@@ -336,7 +348,10 @@ extension StampManager {
             modelName: "Dragon_2.5_For_Animations.usdz",
             coordinate: CLLocationCoordinate2D(latitude: 34.701138596503135, longitude: 135.2180575627066),
             subtitle: "文化が連なるアート街道",
-            category: "アート"
+            category: "アート",
+            description: "兵庫県立美術館から神戸市立王子動物園まで約1.2 kmにわたる散策路。多彩な美術館・動物園・パブリックアートが並び、灘区の『芸術と文化の軸』を体感できます。",
+            pinColorName: "#FFA500",
+            imageURL: URL(string: "https://example.com/images/oji_park_area.png")
         ),
         Spot(
             id: "hyogo-museum",
@@ -345,7 +360,10 @@ extension StampManager {
             modelName: "Dragon_2.5_For_Animations.usdz",
             coordinate: CLLocationCoordinate2D(latitude: 34.69938435220899, longitude: 135.21824370509106),
             subtitle: "海辺に佇むモダンアートの殿堂",
-            category: "アート"
+            category: "アート",
+            description: "世界的建築家 安藤忠雄 設計による建築美と現代アートが融合するギャラリー空間です。家族や大人も楽しめる展覧会や教育プログラムも充実しています。",
+            pinColorName: "#00FFFF",
+            imageURL: URL(string: "https://example.com/images/coast_walk_view.png")
         ),
         Spot(
             id: "disaster-memorial-center",
@@ -354,7 +372,10 @@ extension StampManager {
             modelName: "Dragon_2.5_For_Animations.usdz",
             coordinate: CLLocationCoordinate2D(latitude: 34.699200000000, longitude: 135.216300000000),
             subtitle: "震災の記憶を未来へ紡ぐ",
-            category: "教育"
+            category: "教育",
+            description: "阪神・淡路大震災を契機に、地域の安心・人のケア・共生社会の実現に向けて調査研究を行い、知見を社会に届ける専門機関です。",
+            pinColorName: "#800080",
+            imageURL: URL(string: "https://example.com/images/hat_art_south.png")
         ),
         Spot(
             id: "oji-zoo",
@@ -363,7 +384,10 @@ extension StampManager {
             modelName: "Dragon_2.5_For_Animations.usdz",
             coordinate: CLLocationCoordinate2D(latitude: 34.70978782499848, longitude: 135.21521542400927),
             subtitle: "六甲山麓に広がる動物公園",
-            category: "娯楽"
+            category: "娯楽",
+            description: "約120種700点以上の動物たちが暮らし、コアラやゾウ、フラミンゴなど様々な動物を観察できます。遊園地や旧ハンター住宅などの歴史的建造物も併設され、家族連れにも楽しめるスポットです。",
+            pinColorName: "#FF00FF",
+            imageURL: URL(string: "https://example.com/images/hat_coast_north.png")
         ),
         Spot(
             id: "yokoo-museum",
@@ -372,7 +396,10 @@ extension StampManager {
             modelName: "Dragon_2.5_For_Animations.usdz",
             coordinate: CLLocationCoordinate2D(latitude: 34.708589194409825, longitude: 135.21337999921263),
             subtitle: "横尾忠則ワールドが息づく",
-            category: "アート"
+            category: "アート",
+            description: "兵庫県神戸市灘区にあるアーティスト 横尾忠則 の膨大な作品群を収蔵・展示する美術館です。ポスター・絵画・コラージュなど多彩な創作表現を通じて現代アートの魅力を体感できます。",
+            pinColorName: "#00008B",
+            imageURL: URL(string: "https://example.com/images/music_plaza_stage.png")
         ),
         Spot(
             id: "kobe-ice-campus",
@@ -381,7 +408,10 @@ extension StampManager {
             modelName: "Dragon_2.5_For_Animations.usdz",
             coordinate: CLLocationCoordinate2D(latitude: 34.698971647969785, longitude: 135.2138738394403),
             subtitle: "神戸のスケート文化を育む拠点",
-            category: "スポーツ"
+            category: "スポーツ",
+            description: "神戸市を拠点にスケートスポーツの普及・育成を推進する団体。年中利用可能なアイスリンクも開設し、初心者から競技選手まで幅広く支援しています。",
+            pinColorName: "#32CD32",
+            imageURL: URL(string: "https://example.com/images/monument_square.png")
         ),
     ]
 }

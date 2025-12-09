@@ -61,7 +61,6 @@ struct AnimationSideBar<Content: View,MenuView: View, Background: View>: View {
                 .mask {
                     RoundedRectangle(cornerRadius: progress * cornerRadius)
                 }
-                .scaleEffect(rotatesWhenExpands ? 1 - (progress * 0.1) : 1, anchor: .trailing)
                 .rotation3DEffect(
                     .init(degrees:  rotatesWhenExpands ? (progress * -15) : 0),
                     axis:(x: 0.0, y:1.0, z: 0.0)

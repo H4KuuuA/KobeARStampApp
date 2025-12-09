@@ -20,6 +20,11 @@ struct Spot: Identifiable, Codable, Equatable, Hashable {
     
     var subtitle: String?
     var category: String?
+    var description: String?
+    
+    // マップ表示用（追加）
+    var pinColorName: String?
+    var imageURL: URL?
     
     // カスタムイニシャライザ
     init(
@@ -29,7 +34,10 @@ struct Spot: Identifiable, Codable, Equatable, Hashable {
         modelName: String,
         coordinate: CLLocationCoordinate2D,
         subtitle: String? = nil,
-        category: String? = nil
+        category: String? = nil,
+        description: String? = nil,
+        pinColorName: String? = nil,
+        imageURL: URL? = nil
     ) {
         self.id = id
         self.name = name
@@ -38,6 +46,9 @@ struct Spot: Identifiable, Codable, Equatable, Hashable {
         self.coordinate = coordinate
         self.subtitle = subtitle
         self.category = category
+        self.description = description
+        self.pinColorName = pinColorName
+        self.imageURL = imageURL
     }
     
     // Hashableの実装
@@ -61,6 +72,7 @@ struct Spot: Identifiable, Codable, Equatable, Hashable {
         case longitude
         case subtitle
         case category
+        case description
     }
     
     // カスタムデコーダー
@@ -74,6 +86,7 @@ struct Spot: Identifiable, Codable, Equatable, Hashable {
         modelName = try container.decode(String.self, forKey: .modelName)
         subtitle = try container.decodeIfPresent(String.self, forKey: .subtitle)
         category = try container.decodeIfPresent(String.self, forKey: .category)
+        description = try container.decodeIfPresent(String.self, forKey: .description)
         
         // 座標のデコード（緯度と経度は必須）
         let lat = try container.decode(Double.self, forKey: .latitude)
@@ -92,6 +105,7 @@ struct Spot: Identifiable, Codable, Equatable, Hashable {
         try container.encode(modelName, forKey: .modelName)
         try container.encodeIfPresent(subtitle, forKey: .subtitle)
         try container.encodeIfPresent(category, forKey: .category)
+        try container.encodeIfPresent(description, forKey: .description)
         
         // 座標のエンコード（必須）
         try container.encode(coordinate.latitude, forKey: .latitude)
@@ -122,7 +136,8 @@ extension Spot {
         modelName: "box.usdz",
         coordinate: CLLocationCoordinate2D(latitude: 34.69, longitude: 135.21),
         subtitle: "テスト用のスポット",
-        category: "テスト"
+        category: "テスト",
+        description: "これはテスト用のスポットです。"
     )
 }
 #endif
