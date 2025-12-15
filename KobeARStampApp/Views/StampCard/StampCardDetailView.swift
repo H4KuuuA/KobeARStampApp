@@ -12,6 +12,9 @@ struct StampCardDetailView: View {
     var animation: Namespace.ID
     @ObservedObject var stampManager: StampManager
     
+    // 追加: スクロール可能かどうかを制御
+    var isScrollEnabled: Bool = true
+    
     /// View Properties
     @State private var hidesThumbnail: Bool = false
     @State private var scrollID: String?
@@ -24,7 +27,12 @@ struct StampCardDetailView: View {
             ZStack {
                 Color.black
                 
-                mainScrollView(size: size)
+                if isScrollEnabled {
+                    mainScrollView(size: size)
+                } else {
+                    // スクロール無効時は現在のスポットのみ表示
+                    spotCardView(spot: spot, size: size)
+                }
                 
                 if !hidesThumbnail {
                     thumbnailView(size: size)
@@ -205,7 +213,9 @@ struct StampCardDetailView: View {
                 .frame(width: size.width, height: size.height)
                 .clipShape(.rect(cornerRadius: 15))
                 .task {
-                    scrollID = spot.id
+                    if isScrollEnabled {
+                        scrollID = spot.id
+                    }
                     try? await Task.sleep(for: .seconds(0.15))
                     hidesThumbnail = true
                 }
@@ -216,7 +226,9 @@ struct StampCardDetailView: View {
                 .frame(width: size.width, height: size.height)
                 .clipShape(.rect(cornerRadius: 15))
                 .task {
-                    scrollID = spot.id
+                    if isScrollEnabled {
+                        scrollID = spot.id
+                    }
                     try? await Task.sleep(for: .seconds(0.15))
                     hidesThumbnail = true
                 }

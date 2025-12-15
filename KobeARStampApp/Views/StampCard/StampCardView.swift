@@ -12,6 +12,10 @@ struct StampCardView: View {
     @Namespace private var animation
     @State private var selectedEvent: String = "みんなで!アート探検 in HAT神戸"
     
+    // 追加: プロフィール画像を取得
+    @AppStorage("profileImageData") private var profileImageData: Data?
+    @State private var profileImage: UIImage?
+    
     let eventList = [
         "みんなで!アート探検 in HAT神戸",
         "神戸マラソン2025",
@@ -32,30 +36,6 @@ struct StampCardView: View {
                             EventSelectorMenu()
                         }
                         
-//#if DEBUG
-//                        // デバッグ用ボタン
-//                        HStack(spacing: 12) {
-//                            Button("スタンプ取得") {
-//                                print("🔘 ボタンが押されました")
-//                                stampManager.debugAcquireFirstStamp()
-//                            }
-//                            .padding(.horizontal, 16)
-//                            .padding(.vertical, 8)
-//                            .background(Color.blue)
-//                            .foregroundColor(.white)
-//                            .cornerRadius(8)
-//                            
-//                            Button("全リセット") {
-//                                print("🔘 リセットボタンが押されました")
-//                                stampManager.resetAllStamps()
-//                            }
-//                            .padding(.horizontal, 16)
-//                            .padding(.vertical, 8)
-//                            .background(Color.red)
-//                            .foregroundColor(.white)
-//                            .cornerRadius(8)
-//                        }
-//#endif
                         /// Progress Bar (真ん中)
                         ZStack {
                             StampProgressBar(
@@ -65,15 +45,29 @@ struct StampCardView: View {
                             )
                             
                             // 中央に円形の画像を表示
-                            Image("hatkobe_1")
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 120, height: 120)
-                                .clipShape(Circle())
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.white, lineWidth: 2)
-                                )
+                            if let profileImage = profileImage {
+                                // プロフィール画像がある場合
+                                Image(uiImage: profileImage)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 120, height: 120)
+                                    .clipShape(Circle())
+                                    .overlay(
+                                        Circle()
+                                            .stroke(Color.white, lineWidth: 2)
+                                    )
+                            } else {
+                                // デフォルト画像
+                                Image("hatkobe_1")
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 120, height: 120)
+                                    .clipShape(Circle())
+                                    .overlay(
+                                        Circle()
+                                            .stroke(Color.white, lineWidth: 2)
+                                    )
+                            }
                         }
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding(.top, 32)
@@ -138,6 +132,11 @@ struct StampCardView: View {
                 }
             }
             .onAppear {
+                // プロフィール画像を読み込む
+                if let data = profileImageData, let image = UIImage(data: data) {
+                    profileImage = image
+                }
+                
 #if DEBUG
                 // デバッグ: 最初のスポットを取得済みにする
                 stampManager.debugAcquireFirstStamp()
@@ -152,6 +151,14 @@ struct StampCardView: View {
                 // またはランダムに3個取得
                 // stampManager.debugAcquireRandomStamps(count: 3)
 #endif
+            }
+            .onChange(of: profileImageData) { _, newValue in
+                // AppStorageの変更を監視
+                if let data = newValue, let image = UIImage(data: data) {
+                    profileImage = image
+                } else {
+                    profileImage = nil
+                }
             }
         }
     }
