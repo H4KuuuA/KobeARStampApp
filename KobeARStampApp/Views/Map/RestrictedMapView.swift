@@ -57,6 +57,13 @@ struct RestrictedMapView: UIViewRepresentable {
     
     
     func updateUIView(_ uiView: MKMapView, context: Context) {
+        // アノテーションの完全更新（頻繁でない更新向け）
+        let currentSpotAnnotations = uiView.annotations.compactMap { $0 as? SpotAnnotation }
+        uiView.removeAnnotations(currentSpotAnnotations)
+        
+        let newAnnotations = spots.map { SpotAnnotation(spot: $0) }
+        uiView.addAnnotations(newAnnotations)
+        
         // 現在地に移動
         if shouldCenterOnUser {
             if let userLocation = uiView.userLocation.location {
@@ -91,7 +98,8 @@ struct RestrictedMapView: UIViewRepresentable {
     }
     
     class Coordinator: NSObject, MKMapViewDelegate, UIGestureRecognizerDelegate {
-        private var spotLastTapTimes: [String: Date] = [:]
+        // ⚠️ UUID型のキーに変更
+        private var spotLastTapTimes: [UUID: Date] = [:]
         private let tapDebounceInterval: TimeInterval = 0.3
         private var isUserInRange = false
         private var hasSetInitialRegion = false
@@ -188,6 +196,7 @@ struct RestrictedMapView: UIViewRepresentable {
         func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
             guard let spotAnnotation = view.annotation as? SpotAnnotation else { return }
             
+            // ⚠️ UUID型で処理
             let spotId = spotAnnotation.spot.id
             let currentTime = Date()
             

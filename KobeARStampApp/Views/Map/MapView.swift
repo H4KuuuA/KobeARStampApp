@@ -32,6 +32,16 @@ struct MapView: View {
                 NotificationCenter.default.post(name: .spotDeselected, object: nil)
             }
             
+            // ローディングインジケーター（中央）
+            if stampManager.isLoadingSpots {
+                ProgressView()
+                    .scaleEffect(1.2)
+                    .padding(20)
+                    .background(.ultraThinMaterial)
+                    .cornerRadius(12)
+                    .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 2)
+            }
+            
             // マップコントロールボタン（右下）
             VStack {
                 Spacer()

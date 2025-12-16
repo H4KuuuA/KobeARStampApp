@@ -9,6 +9,7 @@ DerivedData/
 
 ## Various settings
 ExportOptions.plist
+Config.plist
 *.pbxuser
 !default.pbxuser
 *.mode1v3

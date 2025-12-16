@@ -174,6 +174,7 @@ struct ARCameraView: View {
     
     private func handlePhotoSelection(_ selectedImage: UIImage) {
         // ProximityDetectorベースの位置情報チェック
+        // ⚠️ UUID型で判定
         let validation = locationManager.canCaptureStamp(for: spot.id)
         
         if !validation.canCapture {
@@ -235,6 +236,7 @@ struct ARCameraView: View {
     private func locationInfoOverlay() -> some View {
         if let nearestSpot = locationManager.currentNearestSpot {
             VStack(spacing: 8) {
+                // ⚠️ UUID型で比較
                 if locationManager.isWithinCaptureRange && nearestSpot.id == spot.id {
                     // ✅ 撮影可能エリア内（25m以内）
                     HStack(spacing: 6) {
@@ -319,6 +321,7 @@ struct ARCameraView: View {
                 Spacer()
                 
                 // シャッターボタン（ProximityDetectorの判定結果で色を変更）
+                // ⚠️ UUID型で比較
                 Button(action: { snapshotTrigger.send() }) {
                     ZStack {
                         Circle()
@@ -390,12 +393,7 @@ struct ARCameraView: View {
 }
 
 #Preview {
-    let previewSpot = StampManager().allSpots.first ?? Spot(
-        id: "preview-spot",
-        name: "Preview Spot",
-        placeholderImageName: "questionmark.circle",
-        modelName: "box.usdz"
-    )
+    let previewSpot = Spot.testSpot
     
     ARCameraView(
         spot: previewSpot,

@@ -25,7 +25,9 @@ class SpotAnnotationViewWrapper: MKAnnotationView {
             // 座標点にピンの下端（先端）が合うように、ビュー中心を半分だけ上にずらす
             centerOffset = CGPoint(x: 0, y: -viewSize / 2)
             
-            let pinColorHex = spotAnnotation.spot.pinColorName ?? "#0000FF"
+            // ⚠️ pinColor (HEXコード) を取得、デフォルトは青
+            let pinColorHex = spotAnnotation.spot.pinColor ?? "#0000FF"
+            
             let swiftUIView = SpotAnnotationView(
                 spot: spotAnnotation.spot,
                 size: viewSize,
@@ -46,6 +48,7 @@ class SpotAnnotationViewWrapper: MKAnnotationView {
                 ])
             } else {
                 // view構築が重くなるのを防ぐため、差分がなければ更新しない
+                // ⚠️ UUID型で比較
                 if hostingController?.rootView.spot.id != spotAnnotation.spot.id {
                     hostingController?.rootView = swiftUIView
                 }

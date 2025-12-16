@@ -172,7 +172,8 @@ struct MainTabView: View {
         }
         .padding(.bottom, 23)
         .fullScreenCover(isPresented: $showARCameraView) {
-            let previewSpot = StampManager().allSpots.first ?? Spot(id: "preview-spot", name: "Preview Spot", placeholderImageName: "questionmark.circle", modelName: "box.usdz")
+            // ⚠️ testSpot を使用（UUID対応済み）
+            let previewSpot = Spot.testSpot
             
             ARCameraView(spot: previewSpot,
                          activeTab: .constant(.home),
