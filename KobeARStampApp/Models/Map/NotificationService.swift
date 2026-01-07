@@ -2,12 +2,12 @@
 //  NotificationService.swift
 //  KobeARStampApp
 //
-//  Created by 大江悠都 on 2025/10/14.
+//  DB連携対応版
 //
 
 import Foundation
 import UserNotifications
-import _LocationEssentials
+import CoreLocation
 
 /// ローカル通知を管理するサービスクラス
 final class NotificationService {
@@ -21,10 +21,12 @@ final class NotificationService {
     // MARK: - Properties
     
     // 通知送信履歴（重複防止用）
-    private var notificationHistory: [String: Date] = [:]
+    // ⚠️ UUID型のキーに変更
+    private var notificationHistory: [UUID: Date] = [:]
     
     // スタンプ獲得済みスポット（通知不要）
-    private var completedSpotIds: Set<String> = []
+    // ⚠️ UUID型のセットに変更
+    private var completedSpotIds: Set<UUID> = []
     
     // MARK: - 調整可能パラメータ
     
@@ -54,12 +56,14 @@ final class NotificationService {
         accuracy: CLLocationDistance
     ) {
         // スタンプ獲得済みチェック
+        // ⚠️ UUID型で比較
         if completedSpotIds.contains(spot.id) {
             print("🔕 Notification suppressed (stamp collected): \(spot.name)")
             return
         }
         
         // クールダウンチェック
+        // ⚠️ UUID型のキーを使用
         if let lastTime = notificationHistory[spot.id],
            Date().timeIntervalSince(lastTime) < notificationCooldown {
             let elapsed = Date().timeIntervalSince(lastTime)
@@ -75,11 +79,16 @@ final class NotificationService {
         
         // カテゴリとユーザー情報
         content.categoryIdentifier = "SPOT_ARRIVAL"
+        
+        // ⚠️ coordinate は必ず存在するので Optional unwrap 不要
+        let coordinate = spot.coordinate
+        
+        // ⚠️ spotId は UUID の文字列表現を使用
         content.userInfo = [
-            "spotId": spot.id,
+            "spotId": spot.id.uuidString,
             "spotName": spot.name,
-            "latitude": spot.coordinate?.latitude ?? 0,
-            "longitude": spot.coordinate?.longitude ?? 0,
+            "latitude": coordinate.latitude,
+            "longitude": coordinate.longitude,
             "distance": distance,
             "accuracy": accuracy
         ]
@@ -88,7 +97,8 @@ final class NotificationService {
         content.badge = NSNumber(value: getUnreadNotificationCount() + 1)
         
         // 通知リクエスト
-        let identifier = "spot_\(spot.id)_\(Date().timeIntervalSince1970)"
+        // ⚠️ identifier に UUID の文字列表現を使用
+        let identifier = "spot_\(spot.id.uuidString)_\(Date().timeIntervalSince1970)"
         let request = UNNotificationRequest(
             identifier: identifier,
             content: content,
@@ -102,6 +112,7 @@ final class NotificationService {
                 print("✅ Notification sent: \(spot.name) (distance: \(String(format: "%.1f", distance))m)")
                 
                 // 履歴を記録
+                // ⚠️ UUID型のキーを使用
                 DispatchQueue.main.async {
                     self.notificationHistory[spot.id] = Date()
                 }
@@ -110,19 +121,22 @@ final class NotificationService {
     }
     
     /// スタンプ獲得済みとしてマーク
-    func markAsCompleted(spotId: String) {
+    /// ⚠️ UUID型のパラメータに変更
+    func markAsCompleted(spotId: UUID) {
         completedSpotIds.insert(spotId)
         print("✅ Spot marked as completed (no more notifications): \(spotId)")
     }
     
     /// スタンプ獲得状態をリセット
-    func resetCompletion(spotId: String) {
+    /// ⚠️ UUID型のパラメータに変更
+    func resetCompletion(spotId: UUID) {
         completedSpotIds.remove(spotId)
         print("🔄 Spot completion reset: \(spotId)")
     }
     
     /// 通知履歴をリセット（再通知可能にする）
-    func resetNotificationHistory(spotId: String) {
+    /// ⚠️ UUID型のパラメータに変更
+    func resetNotificationHistory(spotId: UUID) {
         notificationHistory.removeValue(forKey: spotId)
         print("🔄 Notification history reset: \(spotId)")
     }

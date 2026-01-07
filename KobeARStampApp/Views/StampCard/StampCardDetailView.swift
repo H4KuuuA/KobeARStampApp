@@ -2,7 +2,7 @@
 //  StampCardDetailView.swift
 //  KobeARStampApp
 //
-//  Created by 大江悠都 on 2025/10/29.
+//  DB連携対応版
 //
 
 import SwiftUI
@@ -10,15 +10,17 @@ import SwiftUI
 struct StampCardDetailView: View {
     let spot: Spot
     var animation: Namespace.ID
-    @ObservedObject var stampManager: StampManager
+    @ObservedObject var stampManager = StampManager.shared
     
-    // 追加: スクロール可能かどうかを制御
+    // 表示するスポットのリスト（親Viewから渡される）
+    let spots: [Spot]
+    
     var isScrollEnabled: Bool = true
     
     /// View Properties
     @State private var hidesThumbnail: Bool = false
-    @State private var scrollID: String?
-    @State private var expandedSpotID: String? = nil  // 展開中のスポットID
+    @State private var scrollID: UUID?
+    @State private var expandedSpotID: UUID? = nil
     
     var body: some View {
         GeometryReader { geometry in
@@ -30,7 +32,6 @@ struct StampCardDetailView: View {
                 if isScrollEnabled {
                     mainScrollView(size: size)
                 } else {
-                    // スクロール無効時は現在のスポットのみ表示
                     spotCardView(spot: spot, size: size)
                 }
                 
@@ -40,15 +41,16 @@ struct StampCardDetailView: View {
             }
         }
         .ignoresSafeArea()
-        .navigationTransition(.zoom(sourceID: spot.id, in: animation))
+        .navigationTransition(.zoom(sourceID: spot.id.uuidString, in: animation))
     }
     
-    // メインのスクロールビュー
+    // MARK: - Main Scroll View
+    
     @ViewBuilder
     private func mainScrollView(size: CGSize) -> some View {
         ScrollView(.vertical) {
             LazyVStack(spacing: 0) {
-                ForEach(stampManager.allSpots) { spot in
+                ForEach(spots) { spot in
                     spotCardView(spot: spot, size: size)
                         .id(spot.id)
                 }
@@ -61,7 +63,7 @@ struct StampCardDetailView: View {
         .zIndex(hidesThumbnail ? 1 : 0)
     }
     
-    // 各スポットのカードビュー
+    // MARK: - Spot Card View
     @ViewBuilder
     private func spotCardView(spot: Spot, size: CGSize) -> some View {
         ZStack(alignment: .top) {
@@ -70,29 +72,81 @@ struct StampCardDetailView: View {
         }
     }
     
-    // スポット画像
+    // MARK: - Image View
     @ViewBuilder
     private func spotImageView(spot: Spot, size: CGSize) -> some View {
+        // スタンプ取得済みならその画像、なければプレイスホルダー
         if let stampImage = stampManager.getImage(for: spot) {
             Image(uiImage: stampImage)
                 .resizable()
                 .aspectRatio(contentMode: .fill)
                 .frame(width: size.width, height: size.height)
                 .clipShape(.rect(cornerRadius: 15))
-        } else if let placeholderImage = UIImage(named: spot.placeholderImageName) {
+        } else {
+            // 未取得: imageUrl または placeholderImageName を表示
+            spotAsyncImageView(spot: spot, size: size)
+        }
+    }
+    
+    @ViewBuilder
+    private func spotAsyncImageView(spot: Spot, size: CGSize) -> some View {
+        if let imageUrlString = spot.imageUrl, let imageUrl = URL(string: imageUrlString) {
+            // imageUrl がある場合: AsyncImageで読み込み
+            AsyncImage(url: imageUrl) { phase in
+                switch phase {
+                case .empty:
+                    ZStack {
+                        Color.gray.opacity(0.3)
+                        ProgressView()
+                    }
+                    .frame(width: size.width, height: size.height)
+                    .clipShape(.rect(cornerRadius: 15))
+                    
+                case .success(let image):
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: size.width, height: size.height)
+                        .clipShape(.rect(cornerRadius: 15))
+                    
+                case .failure:
+                    placeholderOrFallback(spot: spot, size: size)
+                    
+                @unknown default:
+                    placeholderOrFallback(spot: spot, size: size)
+                }
+            }
+        } else {
+            placeholderOrFallback(spot: spot, size: size)
+        }
+    }
+    
+    @ViewBuilder
+    private func placeholderOrFallback(spot: Spot, size: CGSize) -> some View {
+        if let placeholderImage = UIImage(named: spot.placeholderImageName) {
             Image(uiImage: placeholderImage)
                 .resizable()
                 .aspectRatio(contentMode: .fill)
                 .frame(width: size.width, height: size.height)
                 .clipShape(.rect(cornerRadius: 15))
         } else {
-            Color.gray
+            Color.gray.opacity(0.3)
                 .frame(width: size.width, height: size.height)
                 .clipShape(.rect(cornerRadius: 15))
+                .overlay(
+                    VStack {
+                        Image(systemName: "photo")
+                            .font(.system(size: 40))
+                            .foregroundColor(.gray)
+                        Text("画像なし")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+                )
         }
     }
     
-    // スポット情報のオーバーレイ
+    // MARK: - Info Overlay
     @ViewBuilder
     private func spotInfoOverlay(spot: Spot, size: CGSize) -> some View {
         Button(action: {
@@ -107,15 +161,18 @@ struct StampCardDetailView: View {
             VStack(alignment: .leading, spacing: 8) {
                 headerView(spot: spot)
                 
-                if let subtitle = spot.subtitle {
+                // subtitle が Optional(String?) のため、安全にアンラップして空文字でないときだけ表示
+                if let subtitle = spot.subtitle, !subtitle.isEmpty {
                     subtitleView(subtitle: subtitle)
                 }
                 
+                // スタンプ取得情報の表示 (DictionaryのキーはUUID)
                 if let stamp = stampManager.acquiredStamps[spot.id] {
-                    dateView(date: stamp.acquiredDate)
+                    dateView(date: stamp.visitedAt)
                 }
                 
-                if let description = spot.description {
+                // description が空文字でなければ表示
+                if !spot.description.isEmpty {
                     HStack(spacing: 4) {
                         Text("詳細説明")
                             .font(.caption.bold())
@@ -128,7 +185,7 @@ struct StampCardDetailView: View {
                     .padding(.top, 4)
                     
                     if expandedSpotID == spot.id {
-                        descriptionView(description: description, maxHeight: size.height * 0.18)
+                        descriptionView(description: spot.description, maxHeight: size.height * 0.18)
                     }
                 }
             }
@@ -144,7 +201,8 @@ struct StampCardDetailView: View {
         .buttonStyle(PlainButtonStyle())
     }
     
-    // ヘッダー（タイトルとバッジ）
+    // MARK: - Sub Components
+    
     @ViewBuilder
     private func headerView(spot: Spot) -> some View {
         HStack {
@@ -158,7 +216,6 @@ struct StampCardDetailView: View {
         }
     }
     
-    // サブタイトル
     @ViewBuilder
     private func subtitleView(subtitle: String) -> some View {
         Text(subtitle)
@@ -166,7 +223,6 @@ struct StampCardDetailView: View {
             .foregroundColor(.white.opacity(0.8))
     }
     
-    // 取得日時
     @ViewBuilder
     private func dateView(date: Date) -> some View {
         Text("取得日時: \(date.formatted(date: .abbreviated, time: .shortened))")
@@ -174,7 +230,6 @@ struct StampCardDetailView: View {
             .foregroundColor(.white.opacity(0.6))
     }
     
-    // 説明文（スクロール可能）
     @ViewBuilder
     private func descriptionView(description: String, maxHeight: CGFloat) -> some View {
         ScrollView {
@@ -188,7 +243,6 @@ struct StampCardDetailView: View {
         .frame(maxHeight: maxHeight)
     }
     
-    // グラデーション背景
     @ViewBuilder
     private func gradientBackground(isExpanded: Bool) -> some View {
         let topColor = Color.black.opacity(0.85)
@@ -203,52 +257,61 @@ struct StampCardDetailView: View {
         .frame(height: isExpanded ? 280 : 200)
     }
     
-    // サムネイル（初期表示用）
+    // MARK: - Thumbnail View (Initial Transition)
     @ViewBuilder
     private func thumbnailView(size: CGSize) -> some View {
-        if let stampImage = stampManager.getImage(for: spot) {
-            Image(uiImage: stampImage)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(width: size.width, height: size.height)
-                .clipShape(.rect(cornerRadius: 15))
-                .task {
-                    if isScrollEnabled {
-                        scrollID = spot.id
-                    }
-                    try? await Task.sleep(for: .seconds(0.15))
-                    hidesThumbnail = true
-                }
-        } else if let placeholderImage = UIImage(named: spot.placeholderImageName) {
-            Image(uiImage: placeholderImage)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(width: size.width, height: size.height)
-                .clipShape(.rect(cornerRadius: 15))
-                .task {
-                    if isScrollEnabled {
-                        scrollID = spot.id
-                    }
-                    try? await Task.sleep(for: .seconds(0.15))
-                    hidesThumbnail = true
-                }
+        Group {
+            if let stampImage = stampManager.getImage(for: spot) {
+                Image(uiImage: stampImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } else if let placeholderImage = UIImage(named: spot.placeholderImageName) {
+                Image(uiImage: placeholderImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } else {
+                Color.gray
+            }
+        }
+        .frame(width: size.width, height: size.height)
+        .clipShape(.rect(cornerRadius: 15))
+        .task {
+            if isScrollEnabled {
+                scrollID = spot.id
+            }
+            try? await Task.sleep(for: .seconds(0.15))
+            hidesThumbnail = true
         }
     }
 }
 
+// MARK: - Preview
 #Preview {
     @Previewable @Namespace var animation
-    let stampManager = StampManager()
-    let previewSpot = stampManager.allSpots.first ?? Spot(
-        id: "preview",
-        name: "Preview Spot",
-        placeholderImageName: "hatkobe_1",
-        modelName: "box.usdz"
+
+    let previewSpot = Spot(
+        id: UUID(),
+        name: "神戸ポートタワー",
+        subtitle: "美しい夜景スポット",
+        description: "赤いランドマークタワーです。",
+        address: "兵庫県神戸市中央区波止場町5-5",
+        latitude: 34.6826,
+        longitude: 135.1867,
+        radius: 50,
+        category: "観光",
+        pinColor: "#FF0000",
+        imageUrl: nil,
+        arModelId: nil,
+        isActive: true,
+        createdByUser: nil,
+        createdAt: Date(),
+        updatedAt: nil,
+        deletedAt: nil
     )
     
-    return StampCardDetailView(
+    StampCardDetailView(
         spot: previewSpot,
         animation: animation,
-        stampManager: stampManager
+        spots: [previewSpot]
     )
 }

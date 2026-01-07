@@ -2,7 +2,7 @@
 //  BackgroundRegionMonitorDelegate.swift
 //  KobeARStampApp
 //
-//  Created by 大江悠都 on 2025/10/14.
+//  DB連携対応版
 //
 
 import Foundation
@@ -25,10 +25,12 @@ final class BackgroundRegionMonitor: NSObject, ObservableObject {
     weak var delegate: BackgroundRegionMonitorDelegate?
     
     // 最後に侵入を検知した時刻（チャタリング防止用）
-    private var lastDetectionTimes: [String: Date] = [:]
+    // ⚠️ UUID型のキーに変更
+    private var lastDetectionTimes: [UUID: Date] = [:]
     
     // 検知済みスポット（再検知を防ぐ）
-    private var detectedSpotIds: Set<String> = []
+    // ⚠️ UUID型のセットに変更
+    private var detectedSpotIds: Set<UUID> = []
     
     // MARK: - 調整可能パラメータ
     
@@ -76,12 +78,14 @@ final class BackgroundRegionMonitor: NSObject, ObservableObject {
         
         // 各スポットに対してリージョンを設定
         for spot in spots {
-            guard let coordinate = spot.coordinate else { continue }
+            // ⚠️ coordinate は必ず存在するので Optional unwrap 不要
+            let coordinate = spot.coordinate
             
+            // ⚠️ identifier は UUID の文字列表現を使用
             let region = CLCircularRegion(
                 center: coordinate,
                 radius: regionRadius,
-                identifier: spot.id
+                identifier: spot.id.uuidString
             )
             
             region.notifyOnEntry = true
@@ -101,17 +105,20 @@ final class BackgroundRegionMonitor: NSObject, ObservableObject {
     private func performDistanceCheck(at location: CLLocation) {
         for spot in spots {
             // 検知済みスポットはスキップ
+            // ⚠️ UUID型で比較
             if detectedSpotIds.contains(spot.id) {
                 continue
             }
             
             // クールダウンチェック
+            // ⚠️ UUID型のキーを使用
             if let lastTime = lastDetectionTimes[spot.id],
                Date().timeIntervalSince(lastTime) < detectionCooldown {
                 continue
             }
             
-            guard let coordinate = spot.coordinate else { continue }
+            // ⚠️ coordinate は必ず存在するので Optional unwrap 不要
+            let coordinate = spot.coordinate
             
             let spotLocation = CLLocation(
                 latitude: coordinate.latitude,
@@ -128,6 +135,7 @@ final class BackgroundRegionMonitor: NSObject, ObservableObject {
                 print("✅ Detection confirmed for: \(spot.name)")
                 
                 // 最終検知時刻を記録
+                // ⚠️ UUID型のキーを使用
                 lastDetectionTimes[spot.id] = Date()
                 
                 // デリゲートに通知
@@ -139,13 +147,15 @@ final class BackgroundRegionMonitor: NSObject, ObservableObject {
     // MARK: - Public Methods
     
     /// スポットを検知済みとしてマーク（再検知を防ぐ）
-    func markAsDetected(spotId: String) {
+    /// ⚠️ UUID型のパラメータに変更
+    func markAsDetected(spotId: UUID) {
         detectedSpotIds.insert(spotId)
         print("✅ Spot marked as detected: \(spotId)")
     }
     
     /// スポットの検知済み状態をリセット（再検知可能にする）
-    func resetDetection(spotId: String) {
+    /// ⚠️ UUID型のパラメータに変更
+    func resetDetection(spotId: UUID) {
         detectedSpotIds.remove(spotId)
         lastDetectionTimes.removeValue(forKey: spotId)
         print("🔄 Detection reset for spot: \(spotId)")
@@ -171,7 +181,12 @@ extension BackgroundRegionMonitor: CLLocationManagerDelegate {
     
     /// リージョン侵入検知
     func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
-        guard let spot = spots.first(where: { $0.id == region.identifier }) else { return }
+        // ⚠️ String identifier を UUID に変換して検索
+        guard let spotId = UUID(uuidString: region.identifier),
+              let spot = spots.first(where: { $0.id == spotId }) else {
+            print("⚠️ Unknown region identifier: \(region.identifier)")
+            return
+        }
         
         print("🔔 Entered region (100m) for: \(spot.name)")
         

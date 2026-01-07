@@ -26,4 +26,7 @@ extension Notification.Name {
     
     /// ローカル通知をタップしたことを通知
     static let openPinDetail = Notification.Name("openPinDetail")
+    
+    /// 認証状態が変化した通知
+    static let authStateChanged = Notification.Name("authStateChanged")
 }

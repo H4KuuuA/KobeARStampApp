@@ -58,7 +58,7 @@ struct MainTabView: View {
                         case .home:
                             MapView()
                         case .stamp:
-                            StampCardView(stampManager: StampManager())
+                            StampCardView(stampManager: StampManager.shared)
                         case .settings:
                             SettingsView()
                         }
@@ -143,7 +143,7 @@ struct MainTabView: View {
                     }
                 }
             }
-            .offset(y: 12)
+            .offset(y: 6)
         }
         .frame(height: 48)
     }
@@ -172,11 +172,12 @@ struct MainTabView: View {
         }
         .padding(.bottom, 23)
         .fullScreenCover(isPresented: $showARCameraView) {
-            let previewSpot = StampManager().allSpots.first ?? Spot(id: "preview-spot", name: "Preview Spot", placeholderImageName: "questionmark.circle", modelName: "box.usdz")
+            // ⚠️ testSpot を使用（UUID対応済み）
+            let previewSpot = Spot.testSpot
             
             ARCameraView(spot: previewSpot,
                          activeTab: .constant(.home),
-                         stampManager: StampManager())
+                         stampManager: StampManager.shared)
         }
         .offset(y: 4)
     }

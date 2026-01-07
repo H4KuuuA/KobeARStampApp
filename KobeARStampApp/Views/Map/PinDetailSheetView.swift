@@ -31,8 +31,8 @@ struct SpotDetailSheetView: View {
                         basicInfoSection
                         
                         // 詳細説明セクション
-                        if let description = spot.description, !description.isEmpty {
-                            descriptionSection(description)
+                        if !spot.description.isEmpty {
+                            descriptionSection(spot.description)
                         }
                         
                         // 位置情報セクション
@@ -67,6 +67,7 @@ struct SpotDetailSheetView: View {
     // MARK: - Header Image
     private var headerImageView: some View {
         ZStack(alignment: .bottomLeading) {
+            // ⚠️ imageURL は計算プロパティなので Optional unwrap 不要
             if let imageURL = spot.imageURL {
                 AsyncImage(url: imageURL) { phase in
                     switch phase {
@@ -142,6 +143,7 @@ struct SpotDetailSheetView: View {
                     .fontWeight(.bold)
                     .foregroundColor(.primary)
                 
+                // ⚠️ subtitle は Optional なので unwrap が必要
                 if let subtitle = spot.subtitle, !subtitle.isEmpty {
                     Text(subtitle)
                         .font(.title3)
@@ -223,6 +225,14 @@ struct SpotDetailSheetView: View {
                     value: "約350m", // 仮の距離 - 実際の実装では計算が必要
                     iconColor: .green
                 )
+                
+                // 住所表示（DBから取得）
+                InfoRow(
+                    icon: "building.2",
+                    title: "住所",
+                    value: spot.address,
+                    iconColor: .orange
+                )
             }
         }
     }
@@ -264,34 +274,33 @@ struct SpotDetailSheetView: View {
                     .foregroundColor(.primary)
             }
             
-            if let coordinate = spot.coordinate {
-                VStack(alignment: .leading, spacing: 12) {
-                    InfoRow(
-                        icon: "globe.asia.australia",
-                        title: "緯度, 経度",
-                        value: String(format: "%.6f, %.6f", coordinate.latitude, coordinate.longitude),
-                        iconColor: .blue
-                    )
-                }
+            // ⚠️ coordinate は必ず存在するので Optional unwrap 不要
+            VStack(alignment: .leading, spacing: 12) {
+                InfoRow(
+                    icon: "globe.asia.australia",
+                    title: "緯度, 経度",
+                    value: String(format: "%.6f, %.6f", spot.coordinate.latitude, spot.coordinate.longitude),
+                    iconColor: .blue
+                )
+            }
 
-                // 地図で開くボタン（オプション）
-                Button(action: {
-                    openInMaps()
-                }) {
-                    HStack {
-                        Image(systemName: "map")
-                        Text("マップで開く")
-                    }
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundColor(.blue)
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 16)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.blue.opacity(0.1))
-                    )
+            // 地図で開くボタン
+            Button(action: {
+                openInMaps()
+            }) {
+                HStack {
+                    Image(systemName: "map")
+                    Text("マップで開く")
                 }
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundColor(.blue)
+                .padding(.vertical, 8)
+                .padding(.horizontal, 16)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.blue.opacity(0.1))
+                )
             }
         }
     }
@@ -314,7 +323,8 @@ struct SpotDetailSheetView: View {
     
     // MARK: - Helper Functions
     private func openInMaps() {
-        guard let coordinate = spot.coordinate else { return }
+        // ⚠️ coordinate は必ず存在するので Optional unwrap 不要
+        let coordinate = spot.coordinate
         let url = URL(string: "http://maps.apple.com/?ll=\(coordinate.latitude),\(coordinate.longitude)&q=\(spot.name)")!
         if UIApplication.shared.canOpenURL(url) {
             UIApplication.shared.open(url)
@@ -371,5 +381,5 @@ struct InfoRow: View {
 
 // MARK: - Preview
 #Preview {
-    SpotDetailSheetView(spot: StampManager.defaultSpots[0])
+    SpotDetailSheetView(spot: Spot.testSpot)
 }

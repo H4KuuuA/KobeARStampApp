@@ -5,13 +5,19 @@ import AVFoundation
 struct SettingsView: View {
     // MARK: - Properties
     @State private var lastSyncDate: Date? = Date()
-    @State private var profileImage: UIImage? // ローカル表示用
+    @State private var profileImage: UIImage?
     @State private var showImagePicker = false
+    @State private var showLogoutConfirmation = false
+    @State private var showDeleteConfirmation = false
+    @State private var isLoggingOut = false
+    @State private var currentEvent: Event? // 現在開催中のイベント
+    
     @AppStorage("pushNotificationEnabled") private var pushNotificationEnabled = true
     @AppStorage("dataCollectionConsent") private var dataCollectionConsent = true
-    
-    // 追加: @AppStorageで画像データを直接監視
     @AppStorage("profileImageData") private var profileImageData: Data?
+    
+    @ObservedObject private var authManager = AuthManager.shared
+    @ObservedObject private var stampManager = StampManager.shared
     
     var body: some View {
         NavigationStack {
@@ -67,7 +73,7 @@ struct SettingsView: View {
                     HStack {
                         Text("ユーザーID")
                         Spacer()
-                        Text("USER_12345678")
+                        Text(authManager.currentUser?.id.uuidString.prefix(12) ?? "未ログイン")
                             .foregroundColor(.secondary)
                             .font(.caption)
                     }
@@ -113,13 +119,20 @@ struct SettingsView: View {
                         Text("行動データ収集の同意")
                     }
                     
-                    // 参加中のイベント（遷移なし）
+                    // 参加中のイベント（現在開催中のイベントを表示）
                     HStack {
                         Text("参加中のイベント")
                         Spacer()
-                        Text("春の桜まつり")
-                            .foregroundColor(.secondary)
-                            .font(.caption)
+                        if let event = stampManager.currentEvent {
+                            Text(event.name)
+                                .foregroundColor(.secondary)
+                                .font(.caption)
+                                .lineLimit(1)
+                        } else {
+                            Text("なし")
+                                .foregroundColor(.secondary)
+                                .font(.caption)
+                        }
                     }
                     
                     // フィードバック送信
@@ -177,10 +190,30 @@ struct SettingsView: View {
                     Text("アプリ情報")
                 }
                 
+                // MARK: - ログアウトセクション
+                Section {
+                    Button {
+                        showLogoutConfirmation = true
+                    } label: {
+                        HStack {
+                            Spacer()
+                            if isLoggingOut {
+                                ProgressView()
+                                    .tint(.red)
+                            } else {
+                                Text("ログアウト")
+                                    .foregroundColor(Color("DarkBlue"))
+                            }
+                            Spacer()
+                        }
+                    }
+                    .disabled(isLoggingOut)
+                }
+                
                 // MARK: - データ削除セクション(最下部)
                 Section {
                     Button(role: .destructive) {
-                        // データ削除処理(確認ダイアログを表示)
+                        showDeleteConfirmation = true
                     } label: {
                         HStack {
                             Spacer()
@@ -199,20 +232,66 @@ struct SettingsView: View {
             }
             .onAppear {
                 loadImageLocally()
+                Task {
+                    await stampManager.fetchCurrentEvent()
+                }
             }
             .onChange(of: profileImageData) { _, newValue in
-                // AppStorageの変更を監視してローカルのUIImageを更新
                 if let data = newValue, let image = UIImage(data: data) {
                     profileImage = image
                 }
             }
+            // ✅ ログアウト確認ダイアログ
+            .alert("ログアウトしますか?", isPresented: $showLogoutConfirmation) {
+                Button("キャンセル", role: .cancel) {}
+                Button("ログアウト", role: .destructive) {
+                    performLogout()
+                }
+            } message: {
+                Text("ログアウトすると、再度ログインが必要になります。")
+            }
+            .alert("データを削除しますか?", isPresented: $showDeleteConfirmation) {
+                Button("キャンセル", role: .cancel) {}
+                Button("削除", role: .destructive) {
+                    performDataDeletion()
+                }
+            } message: {
+                Text("すべてのデータが削除され、復元できません。")
+            }
         }
+    }
+    
+    // MARK: - Logout Function
+    private func performLogout() {
+        isLoggingOut = true
+        
+        Task {
+            await authManager.signOut()
+            
+            await MainActor.run {
+                profileImageData = nil
+                profileImage = nil
+                lastSyncDate = nil
+                isLoggingOut = false
+            }
+            
+            print("✅ ログアウト完了 - LoginViewへ自動遷移")
+        }
+    }
+    
+    // MARK: - Data Deletion Function
+    private func performDataDeletion() {
+        profileImageData = nil
+        profileImage = nil
+        lastSyncDate = nil
+        
+        print("⚠️ データ削除処理（未実装）")
     }
     
     // MARK: - Local Storage Methods
     private func saveImageLocally(_ image: UIImage) {
         guard let data = image.jpegData(compressionQuality: 0.8) else { return }
-        profileImageData = data // AppStorageに保存
+        profileImageData = data
     }
     
     private func loadImageLocally() {
@@ -228,7 +307,7 @@ struct PushNotificationSettingView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
-            Text("スタンプラリーを楽しむために役立つ通知（ポイント接近・獲得・イベント情報など）の受信設定です。")
+            Text("スタンプラリーを楽しむために役立つ通知(ポイント接近・獲得・イベント情報など)の受信設定です。")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .padding(.horizontal)
@@ -274,7 +353,6 @@ struct LocationPermissionView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // 現在の設定
             VStack(alignment: .leading, spacing: 8) {
                 Text("現在の設定")
                     .font(.headline)
@@ -294,7 +372,6 @@ struct LocationPermissionView: View {
                     .padding(.horizontal)
             }
             
-            // 説明文
             VStack(alignment: .leading, spacing: 16) {
                 Text("位置情報はスタンプ取得やルート案内などに使用されます。")
                     .font(.body)
@@ -314,7 +391,6 @@ struct LocationPermissionView: View {
             
             Spacer()
             
-            // 設定画面へボタン
             Button {
                 openAppSettings()
             } label: {
@@ -437,7 +513,6 @@ struct CameraPermissionView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // 現在の設定
             VStack(alignment: .leading, spacing: 8) {
                 Text("現在の設定")
                     .font(.headline)
@@ -457,7 +532,6 @@ struct CameraPermissionView: View {
                     .padding(.horizontal)
             }
             
-            // 説明文
             VStack(alignment: .leading, spacing: 16) {
                 Text("カメラはAR表示やスタンプ獲得時に使用されます。")
                     .font(.body)
@@ -474,7 +548,6 @@ struct CameraPermissionView: View {
             
             Spacer()
             
-            // 設定画面へボタン
             Button {
                 openAppSettings()
             } label: {

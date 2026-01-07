@@ -2,11 +2,11 @@
 //  ProximityNotificationCoordinator.swift
 //  KobeARStampApp
 //
-//  Created by 大江悠都 on 2025/10/14.
+//  DB連携対応版
 //
 
 import Foundation
-import _LocationEssentials
+import CoreLocation
 
 /// リージョン監視と通知送信を連携させるコーディネーター
 final class ProximityNotificationCoordinator: ObservableObject {
@@ -38,7 +38,8 @@ final class ProximityNotificationCoordinator: ObservableObject {
     // MARK: - Public Methods
     
     /// スタンプを獲得したときに呼び出す
-    func onStampCollected(spotId: String) {
+    /// ⚠️ UUID型のパラメータに変更
+    func onStampCollected(spotId: UUID) {
         // リージョン監視側: 再検知を防ぐ
         regionMonitor.markAsDetected(spotId: spotId)
         
@@ -62,7 +63,8 @@ final class ProximityNotificationCoordinator: ObservableObject {
     }
     
     /// 特定のスポットをリセット（再検知・再通知可能にする）
-    func resetSpot(spotId: String) {
+    /// ⚠️ UUID型のパラメータに変更
+    func resetSpot(spotId: UUID) {
         regionMonitor.resetDetection(spotId: spotId)
         notificationService.resetNotificationHistory(spotId: spotId)
         notificationService.resetCompletion(spotId: spotId)

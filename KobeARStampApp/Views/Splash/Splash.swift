@@ -7,8 +7,8 @@
 
 import SwiftUI
 
+/// アプリ起動時のスプラッシュ画面
 struct SplashView: View {
-    @ObservedObject var appLoader: AppLoaderViewModel
     @State private var logoScale: CGFloat = 0.5
     @State private var logoOpacity: Double = 0.0
     
@@ -39,13 +39,10 @@ struct SplashView: View {
                     .padding(.bottom, 80)
             }
             .onAppear {
+                // ロゴアニメーション
                 withAnimation(.easeOut(duration: 1.2)) {
                     logoScale = 1.0
                     logoOpacity = 1.0
-                }
-                
-                Task {
-                    await appLoader.startLoading()
                 }
             }
         }
@@ -54,5 +51,5 @@ struct SplashView: View {
 }
 
 #Preview {
-    SplashView(appLoader: AppLoaderViewModel())
+    SplashView()
 }
