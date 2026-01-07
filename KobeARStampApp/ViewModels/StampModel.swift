@@ -133,7 +133,7 @@ extension Spot {
         id: "test-spot",
         name: "テストスポット",
         placeholderImageName: "spot_placeholder_1",
-        modelName: "box.usdz",
+        modelName: "frog.usdz",
         coordinate: CLLocationCoordinate2D(latitude: 34.69, longitude: 135.21),
         subtitle: "テスト用のスポット",
         category: "テスト",

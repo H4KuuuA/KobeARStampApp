@@ -13,6 +13,7 @@ import Combine
 struct ARViewContainer: UIViewRepresentable {
     
     let spot: Spot
+    let arModel: ARModel? = nil
     
     @Binding var scale: Float
     let snapshotTrigger: PassthroughSubject<Void, Never>
@@ -46,7 +47,7 @@ struct ARViewContainer: UIViewRepresentable {
     }
     
     func makeCoordinator() -> Coordinator {
-        Coordinator(spot: spot, snapshotTrigger: snapshotTrigger, photoCollection: photoCollection)
+        Coordinator(spot: spot, arModel: arModel, snapshotTrigger: snapshotTrigger, photoCollection: photoCollection)
     }
 
     // MARK: - Coordinator
@@ -58,15 +59,17 @@ struct ARViewContainer: UIViewRepresentable {
         private var loadTask: Task<Void, Never>?
         
         let spot: Spot
+        let arModel: ARModel?
         
         let snapshotTrigger: PassthroughSubject<Void, Never>
         let photoCollection: PhotoCollection
 
-        init(spot: Spot, snapshotTrigger: PassthroughSubject<Void, Never>, photoCollection: PhotoCollection) {
-                    self.spot = spot
-                    self.snapshotTrigger = snapshotTrigger
-                    self.photoCollection = photoCollection
-                }
+        init(spot: Spot, arModel: ARModel?, snapshotTrigger: PassthroughSubject<Void, Never>, photoCollection: PhotoCollection) {
+            self.spot = spot
+            self.arModel = arModel
+            self.snapshotTrigger = snapshotTrigger
+            self.photoCollection = photoCollection
+        }
         
         @objc func handleTap(_ recognizer: UITapGestureRecognizer) {
             guard let arView = arView,
@@ -101,10 +104,23 @@ struct ARViewContainer: UIViewRepresentable {
                 if Task.isCancelled { return }
 
                 do {
-                    guard let url = URL(string: self.spot.modelName) else { throw URLError(.badURL) }
+                    // Resolve model URL either from ARModel or fallback to Spot.modelName (URL string)
+                    let sourceURL: URL
+                    if let arModel = self.arModel {
+                        sourceURL = try arModel.resolvedURL()
+                    } else {
+                        guard let url = URL(string: self.spot.modelName) else { throw URLError(.badURL) }
+                        sourceURL = url
+                    }
 
-                    // Download model data
-                    let (data, _) = try await URLSession.shared.data(from: url)
+                    // Download or copy to a local file URL for stable loading
+                    let data: Data
+                    if sourceURL.isFileURL {
+                        data = try Data(contentsOf: sourceURL)
+                    } else {
+                        let (downloaded, _) = try await URLSession.shared.data(from: sourceURL)
+                        data = downloaded
+                    }
                     if Task.isCancelled { return }
 
                     // Write to caches for stable local loading
@@ -113,8 +129,22 @@ struct ARViewContainer: UIViewRepresentable {
                     try? FileManager.default.removeItem(at: fileURL)
                     try data.write(to: fileURL)
 
-                    // Load ModelEntity from local file
-                    let loadedEntity = try await ModelEntity.load(contentsOf: fileURL)
+                    // Load ModelEntity or Entity from local file depending on arModel kind
+                    let loadedEntity: Entity
+                    if let kind = self.arModel?.resolvedKind {
+                        switch kind {
+                        case .usdz:
+                            loadedEntity = try await ModelEntity.load(contentsOf: fileURL)
+                        case .reality:
+                            loadedEntity = try await Entity.load(contentsOf: fileURL)
+                        case .other:
+                            // Fallback: try as USDZ first
+                            loadedEntity = try await ModelEntity.load(contentsOf: fileURL)
+                        }
+                    } else {
+                        // Fallback to USDZ behavior for Spot-based loading
+                        loadedEntity = try await ModelEntity.load(contentsOf: fileURL)
+                    }
                     loadedEntity.generateCollisionShapes(recursive: true)
                     if Task.isCancelled { return }
 
