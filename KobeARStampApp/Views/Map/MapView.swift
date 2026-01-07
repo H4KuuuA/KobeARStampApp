@@ -4,7 +4,7 @@ import MapKit
 // MARK: - MapView
 struct MapView: View {
     @StateObject private var viewModel = MapViewModel()
-    @StateObject private var stampManager = StampManager()
+    @ObservedObject private var stampManager = StampManager.shared
     @StateObject private var proximityMonitor: ProximityMonitor
     @State private var selectedSpot: Spot? = nil
     @State private var isDetailSheetPresented = false
@@ -13,9 +13,16 @@ struct MapView: View {
     @Namespace private var animation
     
     init() {
-        let manager = StampManager()
-        _stampManager = StateObject(wrappedValue: manager)
-        _proximityMonitor = StateObject(wrappedValue: ProximityMonitor(spots: manager.allSpots))
+        _proximityMonitor = StateObject(wrappedValue: ProximityMonitor(spots: StampManager.shared.allSpots))
+    }
+    
+    // MapViewでは常に現在開催中のイベントのスポットのみ表示
+    private var displayedSpots: [Spot] {
+        if let currentEvent = stampManager.currentEvent, !stampManager.currentEventSpots.isEmpty {
+            return stampManager.currentEventSpots
+        } else {
+            return stampManager.allSpots
+        }
     }
     
     var body: some View {
@@ -23,7 +30,7 @@ struct MapView: View {
             RestrictedMapView(
                 centerCoordinate: viewModel.centerCoordinate,
                 radiusInMeters: viewModel.radiusInMeters,
-                spots: stampManager.allSpots,
+                spots: displayedSpots,
                 shouldCenterOnUser: $shouldCenterOnUser,
                 shouldResetNorth: $shouldResetNorth
             )
@@ -32,7 +39,7 @@ struct MapView: View {
                 NotificationCenter.default.post(name: .spotDeselected, object: nil)
             }
             
-            // ローディングインジケーター（中央）
+            // ローディングインジケーター(中央)
             if stampManager.isLoadingSpots {
                 ProgressView()
                     .scaleEffect(1.2)
@@ -42,7 +49,7 @@ struct MapView: View {
                     .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 2)
             }
             
-            // マップコントロールボタン（右下）
+            // マップコントロールボタン(右下)
             VStack {
                 Spacer()
                 HStack {
@@ -64,7 +71,7 @@ struct MapView: View {
             }
             .zIndex(0)
             
-            // スポットカード（下部）
+            // スポットカード(下部)
             if let spot = selectedSpot {
                 VStack {
                     Spacer()
@@ -92,10 +99,18 @@ struct MapView: View {
                         spot: spot,
                         animation: animation,
                         stampManager: stampManager,
+                        spots: displayedSpots,
                         isScrollEnabled: false
                     )
                     .toolbarVisibility(.hidden, for: .navigationBar)
                 }
+            }
+        }
+        .task {
+            // 起動時に現在開催中のイベントを取得し、そのスポットを読み込む
+            await stampManager.fetchCurrentEvent()
+            if let currentEvent = stampManager.currentEvent {
+                await stampManager.fetchSpots(for: currentEvent)
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .spotTapped)) { notification in

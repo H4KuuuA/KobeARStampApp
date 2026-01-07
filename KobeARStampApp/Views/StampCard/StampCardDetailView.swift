@@ -10,7 +10,10 @@ import SwiftUI
 struct StampCardDetailView: View {
     let spot: Spot
     var animation: Namespace.ID
-    @ObservedObject var stampManager: StampManager
+    @ObservedObject var stampManager = StampManager.shared
+    
+    // 表示するスポットのリスト（親Viewから渡される）
+    let spots: [Spot]
     
     var isScrollEnabled: Bool = true
     
@@ -38,18 +41,18 @@ struct StampCardDetailView: View {
             }
         }
         .ignoresSafeArea()
-        // UUIDを文字列に変換してアニメーションIDに使用
         .navigationTransition(.zoom(sourceID: spot.id.uuidString, in: animation))
     }
     
     // MARK: - Main Scroll View
+    
     @ViewBuilder
     private func mainScrollView(size: CGSize) -> some View {
         ScrollView(.vertical) {
             LazyVStack(spacing: 0) {
-                ForEach(stampManager.allSpots) { spot in
+                ForEach(spots) { spot in
                     spotCardView(spot: spot, size: size)
-                        .id(spot.id) // UUIDを直接使用
+                        .id(spot.id)
                 }
             }
             .scrollTargetLayout()
@@ -79,20 +82,71 @@ struct StampCardDetailView: View {
                 .aspectRatio(contentMode: .fill)
                 .frame(width: size.width, height: size.height)
                 .clipShape(.rect(cornerRadius: 15))
-        } else if let placeholderImage = UIImage(named: spot.placeholderImageName) {
+        } else {
+            // 未取得: imageUrl または placeholderImageName を表示
+            spotAsyncImageView(spot: spot, size: size)
+        }
+    }
+    
+    @ViewBuilder
+    private func spotAsyncImageView(spot: Spot, size: CGSize) -> some View {
+        if let imageUrlString = spot.imageUrl, let imageUrl = URL(string: imageUrlString) {
+            // imageUrl がある場合: AsyncImageで読み込み
+            AsyncImage(url: imageUrl) { phase in
+                switch phase {
+                case .empty:
+                    ZStack {
+                        Color.gray.opacity(0.3)
+                        ProgressView()
+                    }
+                    .frame(width: size.width, height: size.height)
+                    .clipShape(.rect(cornerRadius: 15))
+                    
+                case .success(let image):
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: size.width, height: size.height)
+                        .clipShape(.rect(cornerRadius: 15))
+                    
+                case .failure:
+                    placeholderOrFallback(spot: spot, size: size)
+                    
+                @unknown default:
+                    placeholderOrFallback(spot: spot, size: size)
+                }
+            }
+        } else {
+            placeholderOrFallback(spot: spot, size: size)
+        }
+    }
+    
+    @ViewBuilder
+    private func placeholderOrFallback(spot: Spot, size: CGSize) -> some View {
+        if let placeholderImage = UIImage(named: spot.placeholderImageName) {
             Image(uiImage: placeholderImage)
                 .resizable()
                 .aspectRatio(contentMode: .fill)
                 .frame(width: size.width, height: size.height)
                 .clipShape(.rect(cornerRadius: 15))
         } else {
-            Color.gray
+            Color.gray.opacity(0.3)
                 .frame(width: size.width, height: size.height)
                 .clipShape(.rect(cornerRadius: 15))
+                .overlay(
+                    VStack {
+                        Image(systemName: "photo")
+                            .font(.system(size: 40))
+                            .foregroundColor(.gray)
+                        Text("画像なし")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+                )
         }
     }
     
-    // MARK: - Info Overlay (修正箇所)
+    // MARK: - Info Overlay
     @ViewBuilder
     private func spotInfoOverlay(spot: Spot, size: CGSize) -> some View {
         Button(action: {
@@ -117,9 +171,7 @@ struct StampCardDetailView: View {
                     dateView(date: stamp.visitedAt)
                 }
                 
-                // 【修正】description が String型の場合の対応
-                // String? (Optional) ではなく String の場合、if let はエラーになるため
-                // 「空文字でなければ表示する」というロジックに変更
+                // description が空文字でなければ表示
                 if !spot.description.isEmpty {
                     HStack(spacing: 4) {
                         Text("詳細説明")
@@ -236,7 +288,6 @@ struct StampCardDetailView: View {
 // MARK: - Preview
 #Preview {
     @Previewable @Namespace var animation
-    let stampManager = StampManager()
 
     let previewSpot = Spot(
         id: UUID(),
@@ -261,6 +312,6 @@ struct StampCardDetailView: View {
     StampCardDetailView(
         spot: previewSpot,
         animation: animation,
-        stampManager: stampManager
+        spots: [previewSpot]
     )
 }

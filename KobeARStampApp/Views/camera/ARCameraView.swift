@@ -398,6 +398,6 @@ struct ARCameraView: View {
     ARCameraView(
         spot: previewSpot,
         activeTab: .constant(.home),
-        stampManager: StampManager()
+        stampManager: StampManager.shared
     )
 }

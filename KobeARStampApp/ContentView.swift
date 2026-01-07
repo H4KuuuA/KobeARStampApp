@@ -8,29 +8,49 @@
 import SwiftUI
 
 struct ContentView: View {
-    @EnvironmentObject var appLoader: AppLoaderViewModel
-    @AppStorage("hasCompletedInitialSetup") private var hasCompletedInitialSetup = false
+    @StateObject private var appLoader = AppLoaderViewModel()
+    @ObservedObject private var authManager = AuthManager.shared
     
     var body: some View {
         Group {
-            if appLoader.isLoading {
-                // ローディング画面（既存のものがあればそれを使用）
-                ProgressView()
-            } else {
-                if hasCompletedInitialSetup {
-                    HomeView()
+            if authManager.isAuthenticated {
+                // ログイン済みの場合
+                if appLoader.isLoading {
+                    // ✅ 差分チェック中 or 同期中 → LoadingView表示
+                    LoadingView(appLoader: appLoader)
                 } else {
-                    InitialLoginView(hasCompletedInitialSetup: $hasCompletedInitialSetup)
+                    // ✅ チェック完了 → HomeView表示
+                    HomeView()
                 }
+            } else {
+                // 未ログインの場合
+                LoginView()
             }
         }
-        .task {
-            await appLoader.startLoading()
+        .animation(.easeInOut(duration: 0.3), value: appLoader.isLoading)
+        .task(id: authManager.isAuthenticated) {
+            // ✅ ログイン状態がtrueの場合、差分チェック開始
+            if authManager.isAuthenticated {
+                await appLoader.checkAndSyncIfNeeded()
+                
+                // ✅ データ同期完了後、イベント情報を取得のみ
+                let stampManager = StampManager.shared
+                await stampManager.fetchCurrentEvent()
+                
+                print("✅ ContentView: Data sync and event fetch completed")
+                // バナー表示チェックはHomeViewで行う
+            }
+        }
+        .onChange(of: authManager.isAuthenticated) { oldValue, newValue in
+            // ✅ ログアウト時の処理のみ
+            if !newValue && oldValue {
+                print("🔄 ログアウト - 状態リセット")
+                appLoader.reset()
+            }
         }
     }
 }
 
 #Preview {
     ContentView()
-        .environmentObject(AppLoaderViewModel())
 }

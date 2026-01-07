@@ -16,10 +16,119 @@ class DataRepository {
     // MARK: - Singleton
     
     static let shared = DataRepository()
-    
     private let client = SupabaseManager.shared.client
-    
     private init() {}
+    
+    // MARK: - Authentication
+    
+    /// サインアップ（メールアドレス + パスワード）
+    func signUp(email: String, password: String) async throws -> AuthResponse {
+        return try await client.auth.signUp(email: email, password: password)
+    }
+    
+    /// サインイン（メールアドレス + パスワード）
+    func signIn(email: String, password: String) async throws -> Session {
+        return try await client.auth.signIn(email: email, password: password)
+    }
+    
+    /// サインアウト
+    func signOut() async throws {
+        try await client.auth.signOut()
+    }
+    
+    /// 現在のユーザーを取得
+    func getCurrentUser() async throws -> User? {
+        return try await client.auth.session.user
+    }
+    
+    /// 現在のセッションを取得
+    func getCurrentSession() -> Session? {
+        return client.auth.currentSession
+    }
+    
+    // MARK: - User Profile Management
+    
+    /// ユーザープロフィールを作成（サインアップ後に呼ばれる）
+    /// 注意: handle_new_user トリガーが既に user_profile を作成している場合、
+    /// このメソッドではなく updateUserProfile を使用してください
+    func createUserProfile(profile: UserProfile) async throws {
+        struct ProfileInsert: Encodable {
+            let user_id: String
+            let email: String
+            let role: String
+            let gender: Int?
+            let address: String?
+            let birth_date: String?
+            let is_active: Bool
+            let last_login_at: String?
+        }
+        
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withFullDate]
+        let loginFormatter = ISO8601DateFormatter()
+        
+        let insert = ProfileInsert(
+            user_id: profile.userId.uuidString,
+            email: profile.email,
+            role: profile.role,
+            gender: profile.gender,
+            address: profile.address,
+            birth_date: profile.birthDate,
+            is_active: profile.isActive,
+            last_login_at: profile.lastLoginAt.map { loginFormatter.string(from: $0) }
+        )
+        
+        try await client.from("user_profile").insert(insert).execute()
+        print("✅ ユーザープロフィール作成成功: \(profile.email)")
+    }
+    
+    /// ユーザープロフィールを取得
+    func fetchUserProfile(userId: UUID) async throws -> UserProfile {
+        let profile: UserProfile = try await client
+            .from("user_profile")
+            .select()
+            .eq("user_id", value: userId.uuidString)
+            .single()
+            .execute()
+            .value
+        return profile
+    }
+    
+    /// ユーザープロフィールを更新
+    func updateUserProfile(
+        userId: UUID,
+        username: String? = nil,
+        gender: Int? = nil,
+        address: String? = nil,
+        birthDate: Date? = nil
+    ) async throws {
+        struct ProfileUpdate: Encodable {
+            let username: String?
+            let gender: Int?
+            let address: String?
+            let birth_date: String?
+            let updated_at: String
+        }
+        
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withFullDate]
+        
+        let update = ProfileUpdate(
+            username: username,
+            gender: gender,
+            address: address,
+            birth_date: birthDate.map { formatter.string(from: $0) },
+            updated_at: ISO8601DateFormatter().string(from: Date())
+        )
+        
+        try await client
+            .from("user_profile")
+            .update(update)
+            .eq("user_id", value: userId.uuidString)
+            .execute()
+        
+        print("✅ ユーザープロフィール更新成功")
+    }
     
     // MARK: - Spots（スポット操作）
     
@@ -29,10 +138,10 @@ class DataRepository {
     func fetchActiveSpots() async throws -> [Spot] {
         let spots: [Spot] = try await client
             .from("spots")
-            .select()
-            .eq("is_active", value: true)           // 公開中のみ
+            .select("*")
+            .eq("is_active", value: true)
             .is("deleted_at", value: nil)
-            .order("created_at", ascending: false)  // 新しい順
+            .order("created_at", ascending: false)
             .execute()
             .value
         
@@ -47,9 +156,9 @@ class DataRepository {
     func fetchSpot(id: UUID) async throws -> Spot {
         let spot: Spot = try await client
             .from("spots")
-            .select()
+            .select("*")
             .eq("id", value: id)
-            .single()  // 1件のみ取得
+            .single()
             .execute()
             .value
         
@@ -67,7 +176,7 @@ class DataRepository {
             .select()
             .eq("is_active", value: true)
             .eq("category", value: category)
-            .is("deleted_at", value: nil)           
+            .is("deleted_at", value: nil)
             .order("name", ascending: true)
             .execute()
             .value
@@ -88,10 +197,8 @@ class DataRepository {
         longitude: Double,
         radiusKm: Double = 5.0
     ) async throws -> [Spot] {
-        // まず全てのアクティブなスポットを取得
         let allSpots = try await fetchActiveSpots()
         
-        // クライアント側で距離計算してフィルタリング
         let nearbySpots = allSpots.filter { spot in
             let distance = calculateDistance(
                 lat1: latitude,
@@ -121,7 +228,6 @@ class DataRepository {
             .execute()
             .value
         
-        // iOSで表示できるか確認（USDZまたはReality形式）
         guard model.isUSDZ || model.isReality else {
             throw RepositoryError.unsupportedFileFormat(
                 format: model.fileExtension,
@@ -138,9 +244,7 @@ class DataRepository {
     /// - Returns: ARモデル（存在しない場合はnil）
     /// - Throws: データベースエラー
     func fetchArModel(for spot: Spot) async throws -> ARModel? {
-        guard let arModelId = spot.arModelId else {
-            return nil
-        }
+        guard let arModelId = spot.arModelId else { return nil }
         return try await fetchArModel(id: arModelId)
     }
     
@@ -170,7 +274,6 @@ class DataRepository {
         let now = Date()
         let allEvents = try await fetchPublicEvents()
         
-        // クライアント側で期間チェック
         let ongoingEvents = allEvents.filter { event in
             guard let start = event.startTime, let end = event.endTime else {
                 return false
@@ -187,7 +290,6 @@ class DataRepository {
     /// - Returns: スポットの配列
     /// - Throws: データベースエラー
     func fetchEventSpots(eventId: UUID) async throws -> [Spot] {
-        // event_spotテーブルとspotsテーブルを結合して取得
         let response: [EventSpotWithSpot] = try await client
             .from("event_spot")
             .select("""
@@ -201,7 +303,6 @@ class DataRepository {
             .value
         
         let spots = response.map { $0.spots }
-        
         print("✅ イベントのスポット取得: \(spots.count)件")
         return spots
     }
@@ -222,12 +323,9 @@ class DataRepository {
         longitude: Double
     ) async throws {
         guard let userId = client.auth.currentSession?.user.id else {
-            throw RepositoryError.notAuthenticated(
-                message: "チェックインするにはログインが必要です"
-            )
+            throw RepositoryError.notAuthenticated(message: "チェックインするにはログインが必要です")
         }
         
-        // チェックインデータを作成
         struct VisitInsert: Encodable {
             let user_id: UUID
             let spot_id: UUID
@@ -244,12 +342,7 @@ class DataRepository {
             longitude: longitude
         )
         
-        // insert は値を返さないので .value は不要
-        try await client
-            .from("spot_visit")
-            .insert(visit)
-            .execute()
-        
+        try await client.from("spot_visit").insert(visit).execute()
         print("✅ チェックイン完了: スポットID \(spotId)")
     }
     
@@ -259,9 +352,7 @@ class DataRepository {
     /// - Throws: 認証エラー、データベースエラー
     func fetchMyVisits(limit: Int = 50) async throws -> [SpotVisit] {
         guard let userId = client.auth.currentSession?.user.id else {
-            throw RepositoryError.notAuthenticated(
-                message: "履歴を取得するにはログインが必要です"
-            )
+            throw RepositoryError.notAuthenticated(message: "履歴を取得するにはログインが必要です")
         }
         
         let visits: [SpotVisit] = try await client
@@ -294,9 +385,7 @@ class DataRepository {
             .limit(1)
             .execute()
         
-        // countが1以上なら訪問済み
-        let count = response.count ?? 0
-        return count > 0
+        return (response.count ?? 0) > 0
     }
     
     /// イベントの進捗状況を取得
@@ -304,17 +393,14 @@ class DataRepository {
     /// - Returns: 進捗情報（訪問済みスポット数/全スポット数）
     /// - Throws: データベースエラー
     func fetchEventProgress(eventId: UUID) async throws -> EventProgress {
-        guard let userId = client.auth.currentSession?.user.id else {
-            throw RepositoryError.notAuthenticated(
-                message: "進捗を取得するにはログインが必要です"
-            )
+        // ログインチェックのみ（userIdは後続の hasVisited で使用される）
+        guard client.auth.currentSession?.user.id != nil else {
+            throw RepositoryError.notAuthenticated(message: "進捗を取得するにはログインが必要です")
         }
         
-        // イベントのスポット一覧を取得
         let eventSpots = try await fetchEventSpots(eventId: eventId)
         let totalSpots = eventSpots.count
         
-        // 訪問済みスポットをチェック
         var visitedCount = 0
         for spot in eventSpots {
             if try await hasVisited(spotId: spot.id) {
@@ -332,6 +418,50 @@ class DataRepository {
         )
     }
     
+    // MARK: - AR Model Sync
+    
+    /// ARモデルが紐づいているアクティブなスポット一覧を取得
+    /// - Returns: SpotWithModel の配列（ARモデル情報を含む）
+    /// - Throws: データベースエラー
+    func fetchSpotsWithARModels() async throws -> [SpotWithModel] {
+        let query = client
+            .from("spots")
+            .select("""
+                id,
+                name,
+                ar_model_id,
+                ar_model:ar_model_id (
+                    id,
+                    file_url,
+                    updated_at
+                )
+            """)
+            .eq("is_active", value: true)
+            .is("deleted_at", value: nil)
+            .not("ar_model_id", operator: .is, value: "null")
+        
+        let response: [SpotWithModel] = try await query.execute().value
+        print("✅ ARモデル付きスポット取得: \(response.count)件")
+        return response
+    }
+    
+    /// 特定のARモデルが他のスポットで使用されているかチェック
+    /// - Parameter modelId: ARモデルID
+    /// - Returns: 使用中の場合 true
+    /// - Throws: データベースエラー
+    func isARModelInUse(modelId: UUID) async throws -> Bool {
+        let response = try await client
+            .from("spots")
+            .select("id", head: true, count: .exact)
+            .eq("ar_model_id", value: modelId)
+            .eq("is_active", value: true)
+            .is("deleted_at", value: nil)
+            .limit(1)
+            .execute()
+        
+        return (response.count ?? 0) > 0
+    }
+    
     // MARK: - Utility（ユーティリティ）
     
     /// 2点間の距離を計算（ハバーサイン公式）
@@ -342,7 +472,7 @@ class DataRepository {
         lat2: Double,
         lon2: Double
     ) -> Double {
-        let earthRadius = 6371.0 // 地球の半径（km）
+        let earthRadius = 6371.0
         
         let dLat = (lat2 - lat1) * .pi / 180.0
         let dLon = (lon2 - lon1) * .pi / 180.0
@@ -410,13 +540,10 @@ enum RepositoryError: LocalizedError {
     
     var errorDescription: String? {
         switch self {
-        case .notAuthenticated(let message):
-            return message
-        case .unsupportedFileFormat(_, let message):
-            return message
-        case .notFound(let message):
-            return message
-        case .invalidData(let message):
+        case .notAuthenticated(let message),
+             .unsupportedFileFormat(_, let message),
+             .notFound(let message),
+             .invalidData(let message):
             return message
         }
     }
@@ -431,7 +558,7 @@ extension DataRepository {
         do {
             let _: [Spot] = try await client
                 .from("spots")
-                .select("id")
+                .select("*")
                 .limit(1)
                 .execute()
                 .value

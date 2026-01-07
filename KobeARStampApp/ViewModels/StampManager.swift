@@ -8,19 +8,31 @@
 import SwiftUI
 import CoreLocation
 
+@MainActor
 class StampManager: ObservableObject {
+    
+    // MARK: - Singleton
+    static let shared = StampManager()
     
     // MARK: - Properties
     
     /// スポットのリスト(DBから取得)
     @Published var allSpots: [Spot] = []
     
+    /// 現在選択中のイベントに紐づくスポット
+    @Published var currentEventSpots: [Spot] = []
+    
     /// 取得済みスタンプ(ローカル保存)
-    /// ⚠️ UUID型のキーに変更
     @Published var acquiredStamps: [UUID: AcquiredStamp] = [:]
     
     /// ローディング状態
     @Published var isLoadingSpots = false
+    
+    /// イベント別スポット取得中
+    @Published var isLoadingEventSpots = false
+    
+    /// 現在開催中のイベント
+    @Published var currentEvent: Event?
     
     // MARK: - Computed Properties
     
@@ -30,6 +42,17 @@ class StampManager: ObservableObject {
     
     var totalSpotCount: Int {
         allSpots.count
+    }
+    
+    /// 現在選択中のイベントのスポット数（StampCardView用）
+    var currentEventSpotCount: Int {
+        currentEventSpots.count
+    }
+    
+    /// 現在選択中のイベントで取得済みのスタンプ数
+    var currentEventAcquiredCount: Int {
+        let eventSpotIds = Set(currentEventSpots.map { $0.id })
+        return acquiredStamps.keys.filter { eventSpotIds.contains($0) }.count
     }
     
     var progress: Float {
@@ -48,7 +71,7 @@ class StampManager: ObservableObject {
     
     // MARK: - Initialization
     
-    init() {
+    private init() {
         let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         stampsDirectoryURL = documentsURL.appendingPathComponent("StampImages")
         stampsJSONURL = documentsURL.appendingPathComponent("stamps.json")
@@ -59,51 +82,105 @@ class StampManager: ObservableObject {
             attributes: nil
         )
         
-        loadSpots()  // ← 先にスポットを読み込む
-        loadStamps() // ← その後にスタンプを読み込む
+        // ログイン前はデフォルトスポットを使用
+        allSpots = Self.defaultSpots
+        loadStamps() // ← スタンプは先に読み込む
+        
+        // 認証状態を監視してスポットを読み込む
+        setupAuthObserver()
+    }
+    
+    // MARK: - Auth Observer
+    
+    /// 認証状態を監視してスポットを読み込む
+    private func setupAuthObserver() {
+        Task {
+            // AuthManagerの状態変化を監視
+            for await _ in NotificationCenter.default.notifications(named: .authStateChanged) {
+                if AuthManager.shared.isAuthenticated {
+                    await loadSpotsFromDatabase()
+                } else {
+                    // ログアウト時はデフォルトスポットに戻す
+                    allSpots = Self.defaultSpots
+                }
+            }
+        }
+    }
+    
+    // MARK: - Data Loading
+    
+    /// DBからスポットを非同期で読み込む
+    func loadSpotsFromDatabase() async {
+        isLoadingSpots = true
+        
+        do {
+            let spots = try await DataRepository.shared.fetchActiveSpots()
+            allSpots = spots.isEmpty ? Self.defaultSpots : spots
+            print("✅ DBからスポット読み込み成功: \(spots.count)件")
+        } catch {
+            print("⚠️ スポット読み込み失敗、デフォルトを使用: \(error)")
+            allSpots = Self.defaultSpots
+        }
+        
+        isLoadingSpots = false
+    }
+    
+    /// DBからスポットを取得（外部から呼び出し可能）
+    func fetchSpots() async {
+        await loadSpotsFromDatabase()
+    }
+    
+    /// 特定のイベントに紐づくスポットを取得
+    func fetchSpots(for event: Event) async {
+        isLoadingEventSpots = true
+        
+        do {
+            print("📥 Fetching spots for event: \(event.name)")
+            
+            // event_spotテーブルから該当イベントのスポットIDを取得
+            let response = try await SupabaseManager.shared.client
+                .from("event_spot")
+                .select("spot_id")
+                .eq("event_id", value: event.id.uuidString)
+                .execute()
+            
+            struct EventSpotRelation: Codable {
+                let spot_id: String
+            }
+            
+            let decoder = JSONDecoder()
+            let relations = try decoder.decode([EventSpotRelation].self, from: response.data)
+            let spotIds = relations.compactMap { UUID(uuidString: $0.spot_id) }
+            
+            print("📥 Found \(spotIds.count) spot IDs for event")
+            
+            // 取得したIDに該当するスポットをallSpotsからフィルタリング
+            currentEventSpots = allSpots.filter { spotIds.contains($0.id) }
+            
+            print("✅ Event spots fetched: \(currentEventSpots.count)")
+            
+        } catch {
+            print("❌ Error fetching event spots: \(error)")
+            // エラー時は空配列にする
+            currentEventSpots = []
+        }
+        
+        isLoadingEventSpots = false
     }
     
     // MARK: - Spot Management
     
-    /// スポットを読み込む
-    private func loadSpots() {
-        // 将来的にDB連携する場合のためにローディング状態を設定
-        isLoadingSpots = true
-        
-        // TODO: 将来的にはDB連携に置き換える
-        // Task {
-        //     do {
-        //         allSpots = try await DataRepository.shared.fetchActiveSpots()
-        //     } catch {
-        //         print("❌ スポット取得失敗: \(error)")
-        //         allSpots = Self.defaultSpots
-        //     }
-        //     await MainActor.run {
-        //         isLoadingSpots = false
-        //     }
-        // }
-        
-        // 現在はハードコード
-        allSpots = Self.defaultSpots
-        isLoadingSpots = false
-    }
-    
-    /// DBからスポットを取得
+    /// DBからスポットを取得（後方互換性のため残す）
     func fetchSpotsFromDB() async throws {
-        await MainActor.run {
-            isLoadingSpots = true
-        }
+        isLoadingSpots = true
         
         let spots = try await DataRepository.shared.fetchActiveSpots()
         
-        await MainActor.run {
-            self.allSpots = spots
-            self.isLoadingSpots = false
-        }
+        self.allSpots = spots
+        self.isLoadingSpots = false
     }
     
     /// スポットIDからSpotを取得
-    /// ⚠️ UUID型のパラメータに変更
     func getSpot(by id: UUID) -> Spot? {
         return allSpots.first { $0.id == id }
     }
@@ -113,7 +190,6 @@ class StampManager: ObservableObject {
     /// スタンプを追加(トランザクション的)
     func addStamp(image: UIImage, for spot: Spot) {
         // 1. 既に取得済みかチェック
-        // ⚠️ UUID型で比較
         guard acquiredStamps[spot.id] == nil else {
             print("⚠️ スタンプは既に取得済み: \(spot.name)")
             return
@@ -126,7 +202,6 @@ class StampManager: ObservableObject {
         }
         
         // 3. 画像を保存
-        // ⚠️ UUID の文字列表現を使用
         let fileName = spot.id.uuidString + ".jpeg"
         let fileURL = stampsDirectoryURL.appendingPathComponent(fileName)
         
@@ -154,7 +229,6 @@ class StampManager: ObservableObject {
                 eventNameSnapshot: nil
             )
             
-            // ⚠️ UUID型のキーを使用
             acquiredStamps[spot.id] = newStamp
             saveStamps()
             
@@ -179,7 +253,6 @@ class StampManager: ObservableObject {
     }
     
     /// スタンプが取得済みかチェック
-    /// ⚠️ UUID型のパラメータに変更
     func isStampAcquired(spotID: UUID) -> Bool {
         return acquiredStamps[spotID] != nil
     }
@@ -197,7 +270,6 @@ class StampManager: ObservableObject {
     
     /// Spotから画像を取得(取得済みの場合のみ)
     func getImage(for spot: Spot) -> UIImage? {
-        // ⚠️ UUID型のキーを使用
         guard let stamp = acquiredStamps[spot.id] else {
             return nil
         }
@@ -225,7 +297,6 @@ class StampManager: ObservableObject {
         }
         
         do {
-            // ⚠️ UUID型のキーでデコード
             acquiredStamps = try JSONDecoder().decode([UUID: AcquiredStamp].self, from: data)
             print("✅ スタンプリストを読み込み: \(acquiredStamps.count)個")
             
@@ -267,6 +338,45 @@ class StampManager: ObservableObject {
         return Array(Set(categories)).sorted()
     }
     
+    // MARK: - Event Management
+    
+    /// Supabaseから現在開催中のイベントを取得
+    func fetchCurrentEvent() async {
+        print("📥 Fetching current event from Supabase...")
+        
+        do {
+            let now = Date()
+            let formatter = ISO8601DateFormatter()
+            let nowString = formatter.string(from: now)
+            
+            print("📥 Current time: \(nowString)")
+            
+            // 現在開催中のイベントを取得（1件のみ）
+            let response = try await SupabaseManager.shared.client
+                .from("events")
+                .select()
+                .eq("status", value: true)
+                .eq("is_public", value: true)
+                .lte("start_time", value: nowString)
+                .gte("end_time", value: nowString)
+                .order("start_time", ascending: false)
+                .limit(1)
+                .execute()
+            
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            
+            let events = try decoder.decode([Event].self, from: response.data)
+            
+            self.currentEvent = events.first
+            print("✅ Current event fetched: \(events.first?.name ?? "None")")
+            
+        } catch {
+            print("❌ Error fetching current event: \(error)")
+            self.currentEvent = nil
+        }
+    }
+    
     // MARK: - Debug
     
     #if DEBUG
@@ -281,7 +391,6 @@ class StampManager: ObservableObject {
     }
     
     /// デバッグ用: プレースホルダー画像を使って特定のスポットのスタンプを取得済みにする
-    /// ⚠️ UUID型のパラメータに変更
     func debugAcquireStamp(spotID: UUID) {
         guard let spot = getSpot(by: spotID) else {
             print("❌ スポットが見つかりません: \(spotID)")
@@ -309,7 +418,6 @@ class StampManager: ObservableObject {
     }
     
     /// デバッグ用: 複数のスポットをまとめて取得済みにする
-    /// ⚠️ UUID型の配列に変更
     func debugAcquireMultipleStamps(spotIDs: [UUID]) {
         for spotID in spotIDs {
             debugAcquireStamp(spotID: spotID)
@@ -353,7 +461,6 @@ extension StampManager {
             createdAt: Date(),
             updatedAt: nil,
             deletedAt: nil
-        ),
-        // ... 他のスポットも同様に修正
+        )
     ]
 }

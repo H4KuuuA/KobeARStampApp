@@ -11,12 +11,12 @@ import SwiftUI
 struct KobeARStampAppApp: App {
     
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    @StateObject private var stampManager = StampManager()
+    @StateObject private var stampManager = StampManager.shared
     @StateObject private var proximityNotification: ProximityNotificationCoordinator
-    @StateObject private var appLoader = AppLoaderViewModel()
+    @State private var showSplash = true  // ✅ Splash表示フラグ
     
     init() {
-        let manager = StampManager()
+        let manager = StampManager.shared
         _stampManager = StateObject(wrappedValue: manager)
         _proximityNotification = StateObject(wrappedValue: ProximityNotificationCoordinator(spots: manager.allSpots))
     }
@@ -24,18 +24,29 @@ struct KobeARStampAppApp: App {
     var body: some Scene {
         WindowGroup {
             ZStack {
-                if appLoader.isLoading {
-                    SplashView(appLoader: appLoader)
-                } else {
-                    ContentView()
-                        .environmentObject(appLoader)            
-                        .environmentObject(proximityNotification)
-                        .environmentObject(stampManager)
+                // メインコンテンツ
+                ContentView()
+                    .environmentObject(proximityNotification)
+                    .environmentObject(stampManager)
+                    .opacity(showSplash ? 0 : 1)
+                
+                // ✅ Splash画面（起動時のみ表示）
+                if showSplash {
+                    SplashView()
+                        .transition(.opacity)
+                        .zIndex(1)
                 }
             }
-            // ✅ 修正: .task() モディファイアで接続チェックを実行
             .task {
+                // Splash表示時間（1.5秒）
+                try? await Task.sleep(nanoseconds: 1_500_000_000)
+                
+                withAnimation(.easeOut(duration: 0.5)) {
+                    showSplash = false
+                }
+                
                 #if DEBUG
+                // Splash終了後にSupabaseチェック
                 await performSupabaseCheck()
                 #endif
             }
@@ -44,7 +55,7 @@ struct KobeARStampAppApp: App {
     
     // MARK: - Supabase接続チェック
     
-    /// Supabase接続の動作確認（デバッグ専用）
+    /// Supabase接続の動作確認(デバッグ専用)
     private func performSupabaseCheck() async {
         print("\n" + String(repeating: "=", count: 60))
         print("🔍 Supabase接続チェック開始")
@@ -58,6 +69,19 @@ struct KobeARStampAppApp: App {
             print("❌ Config.plist が見つからないか、設定が不完全です")
             print("   → Config.plist.example をコピーして設定してください")
             return
+        }
+        
+        // 1.5 認証状態の確認
+        print("\n【ステップ1.5】現在の認証状態チェック...")
+        do {
+            let session = try await SupabaseManager.shared.client.auth.session
+            print("👤 ログイン状態: [ログイン済み]")
+            print("   User ID : \(session.user.id)")
+            print("   Email   : \(session.user.email ?? "メールアドレスなし")")
+            print("   Role    : \(session.user.role ?? "user")")
+        } catch {
+            print("👤 ログイン状態: [未ログイン]")
+            print("   詳細: セッションが見つかりません(または期限切れ)")
         }
         
         // 2. データベース接続テスト
@@ -128,7 +152,7 @@ struct KobeARStampAppApp: App {
     }
 }
 
-// MARK: - デバッグ専用の接続テストビュー（オプション）
+// MARK: - デバッグ専用の接続テストビュー(オプション)
 
 #if DEBUG
 /// Supabase接続テスト専用画面

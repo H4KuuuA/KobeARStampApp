@@ -58,7 +58,7 @@ struct MainTabView: View {
                         case .home:
                             MapView()
                         case .stamp:
-                            StampCardView(stampManager: StampManager())
+                            StampCardView(stampManager: StampManager.shared)
                         case .settings:
                             SettingsView()
                         }
@@ -143,7 +143,7 @@ struct MainTabView: View {
                     }
                 }
             }
-            .offset(y: 12)
+            .offset(y: 6)
         }
         .frame(height: 48)
     }
@@ -177,7 +177,7 @@ struct MainTabView: View {
             
             ARCameraView(spot: previewSpot,
                          activeTab: .constant(.home),
-                         stampManager: StampManager())
+                         stampManager: StampManager.shared)
         }
         .offset(y: 4)
     }

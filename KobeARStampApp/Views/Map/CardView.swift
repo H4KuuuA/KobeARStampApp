@@ -124,7 +124,7 @@ struct SpotCardView: View {
 #Preview {
     SpotCardView(
         spot: StampManager.defaultSpots[0],
-        stampManager: StampManager(),
+        stampManager: StampManager.shared,
         onDismiss: {}
     )
     .background(Color.gray.opacity(0.2))

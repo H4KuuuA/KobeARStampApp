@@ -11,15 +11,39 @@ struct StampProgressBar: View {
     @ObservedObject var stampManager: StampManager
     let size: CGFloat
     let showPercentage: Bool
+    let useEventProgress: Bool // イベント進捗を使用するか
     
     // アニメーション用の状態変数
     @State private var animatedProgress: CGFloat = 0
     @State private var animatedSize: CGFloat = 40
     
+    // デフォルトイニシャライザ（useEventProgressなし）
+    init(stampManager: StampManager, size: CGFloat, showPercentage: Bool) {
+        self.stampManager = stampManager
+        self.size = size
+        self.showPercentage = showPercentage
+        self.useEventProgress = false
+    }
+    
+    // useEventProgressありのイニシャライザ
+    init(stampManager: StampManager, size: CGFloat, showPercentage: Bool, useEventProgress: Bool) {
+        self.stampManager = stampManager
+        self.size = size
+        self.showPercentage = showPercentage
+        self.useEventProgress = useEventProgress
+    }
+    
     // 進捗の割合を計算
     private var progressRatio: CGFloat {
-        guard stampManager.totalSpotCount > 0 else { return 0 }
-        return CGFloat(stampManager.acquiredStampCount) / CGFloat(stampManager.totalSpotCount)
+        if useEventProgress {
+            // イベント進捗を使用
+            guard stampManager.currentEventSpotCount > 0 else { return 0 }
+            return CGFloat(stampManager.currentEventAcquiredCount) / CGFloat(stampManager.currentEventSpotCount)
+        } else {
+            // 全体進捗を使用
+            guard stampManager.totalSpotCount > 0 else { return 0 }
+            return CGFloat(stampManager.acquiredStampCount) / CGFloat(stampManager.totalSpotCount)
+        }
     }
     
     var body: some View {
@@ -74,9 +98,17 @@ struct StampProgressBar: View {
 }
 
 struct StampDemoView: View {
-    @StateObject private var stampManager = StampManager()
+    @StateObject private var stampManager = StampManager.shared
     @State private var isExpanded = false
-    @State private var eventName = "みんなで!アート探検 in HAT神戸"
+    
+    // イベント名を動的に取得
+    private var eventName: String {
+        if let currentEvent = stampManager.currentEvent {
+            return currentEvent.name
+        } else {
+            return "イベント未開催"
+        }
+    }
     
     // カスタムアニメーション設定
     private var expansionAnimation: Animation {
@@ -85,6 +117,29 @@ struct StampDemoView: View {
     
     private var contentAnimation: Animation {
         .easeInOut(duration: 0.6).delay(isExpanded ? 0.2 : 0)
+    }
+    
+    // 現在開催中のイベントがあるか判定
+    private var hasCurrentEvent: Bool {
+        return stampManager.currentEvent != nil && !stampManager.currentEventSpots.isEmpty
+    }
+    
+    // 表示するスタンプ数（取得済み）
+    private var displayedAcquiredCount: Int {
+        if hasCurrentEvent {
+            return stampManager.currentEventAcquiredCount
+        } else {
+            return stampManager.acquiredStampCount
+        }
+    }
+    
+    // 表示するスタンプ数（総数）
+    private var displayedTotalCount: Int {
+        if hasCurrentEvent {
+            return stampManager.currentEventSpotCount
+        } else {
+            return stampManager.totalSpotCount
+        }
     }
     
     var body: some View {
@@ -118,7 +173,8 @@ struct StampDemoView: View {
                         StampProgressBar(
                             stampManager: stampManager,
                             size: isExpanded ? 100 : 40,
-                            showPercentage: isExpanded
+                            showPercentage: isExpanded,
+                            useEventProgress: hasCurrentEvent
                         )
                         Spacer()
                     }
@@ -137,6 +193,7 @@ struct StampDemoView: View {
                                     .foregroundColor(Color(red: 0.1, green: 0.1, blue: 0.1))
                                     .multilineTextAlignment(.leading)
                                     .shadow(color: .black.opacity(0.1), radius: 1, x: 0, y: 1)
+                                    .lineLimit(2)
                             }
                             .padding(.vertical, 4)
                             
@@ -156,16 +213,16 @@ struct StampDemoView: View {
                                         .font(.system(size: 22, weight: .bold, design: .rounded))
                                         .foregroundColor(Color(red: 0.1, green: 0.1, blue: 0.1))
                                     HStack(spacing: 0) {
-                                        Text("\(stampManager.acquiredStampCount)")
+                                        Text("\(displayedAcquiredCount)")
                                             .font(.system(size: 40, weight: .bold, design: .rounded))
                                             .foregroundColor(Color("DarkBlue"))
                                             .contentTransition(.numericText())
                                         
-                                        Text("/\(stampManager.totalSpotCount)")
+                                        Text("/\(displayedTotalCount)")
                                             .font(.system(size: 40, weight: .bold, design: .rounded))
                                             .foregroundColor(Color(red: 0.1, green: 0.1, blue: 0.1))
                                     }
-                                    .animation(.spring(), value: stampManager.acquiredStampCount)
+                                    .animation(.spring(), value: displayedAcquiredCount)
                                 }
                                 .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
                                 .padding(.leading, 2)
@@ -194,16 +251,16 @@ struct StampDemoView: View {
                                     .font(.system(size: 20, weight: .bold, design: .rounded))
                                     .foregroundColor(Color(red: 0.1, green: 0.1, blue: 0.1))
                                 
-                                Text("\(stampManager.acquiredStampCount)")
+                                Text("\(displayedAcquiredCount)")
                                     .font(.system(size: 20, weight: .bold, design: .rounded))
                                     .foregroundColor(Color("DarkBlue"))
                                     .contentTransition(.numericText())
                                 
-                                Text("/\(stampManager.totalSpotCount)")
+                                Text("/\(displayedTotalCount)")
                                     .font(.system(size: 20, weight: .bold, design: .rounded))
                                     .foregroundColor(Color(red: 0.1, green: 0.1, blue: 0.1))
                             }
-                            .animation(.spring(), value: stampManager.acquiredStampCount)
+                            .animation(.spring(), value: displayedAcquiredCount)
                             .shadow(color: .black.opacity(0.1), radius: 1, x: 0, y: 1)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -222,29 +279,15 @@ struct StampDemoView: View {
                     isExpanded.toggle()
                 }
             }
-            
-//            // デバッグ用ボタン
-//            #if DEBUG
-//            HStack {
-//                Button("スタンプ +1") {
-//                    stampManager.debugAcquireFirstStamp()
-//                }
-//                .padding()
-//                .background(Color.blue)
-//                .foregroundColor(.white)
-//                .cornerRadius(8)
-//                
-//                Button("リセット") {
-//                    stampManager.resetAllStamps()
-//                }
-//                .padding()
-//                .background(Color.red)
-//                .foregroundColor(.white)
-//                .cornerRadius(8)
-//            }
-//            
         }
         .padding()
+        .task {
+            // 起動時に現在開催中のイベントを取得し、そのスポットを読み込む
+            await stampManager.fetchCurrentEvent()
+            if let currentEvent = stampManager.currentEvent {
+                await stampManager.fetchSpots(for: currentEvent)
+            }
+        }
     }
 }
 
