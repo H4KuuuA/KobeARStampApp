@@ -154,7 +154,7 @@ class LocationAwareCaptureManager: ObservableObject {
             return "スポット検出なし"
         }
         
-        let status = isWithinCaptureRange ? "✅ 撮影可能" : "⚠️ 範囲外"
+        let status = isWithinCaptureRange ? "撮影可能" : "範囲外"
         let distance = String(format: "%.1fm", distanceToSpot)
         return "\(status) - \(spot.name) (\(distance))"
     }

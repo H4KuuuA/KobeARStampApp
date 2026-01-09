@@ -70,16 +70,16 @@ struct ARCameraView: View {
             VStack {
                 topControls()
                 
-                // デバッグ表示（開発時のみ）
-                #if DEBUG
-                Text(locationManager.getStatusString())
-                    .font(.caption)
-                    .foregroundColor(.white)
-                    .padding(8)
-                    .background(Color.black.opacity(0.5))
-                    .cornerRadius(8)
-                    .padding(.top, 8)
-                #endif
+//                // デバッグ表示（開発時のみ）
+//                #if DEBUG
+//                Text(locationManager.getStatusString())
+//                    .font(.caption)
+//                    .foregroundColor(.white)
+//                    .padding(8)
+//                    .background(Color.black.opacity(0.5))
+//                    .cornerRadius(8)
+//                    .padding(.top, 8)
+//                #endif
                 
                 Spacer()
                 
