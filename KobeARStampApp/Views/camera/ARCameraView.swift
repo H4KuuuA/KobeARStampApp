@@ -166,7 +166,7 @@ struct ARCameraView: View {
             guard let result = result else { return }
             switch result {
             case .success:
-                self.saveFeedbackMessage = "写真がフォトライブラリに保存されました！"
+                self.saveFeedbackMessage = "写真がフォトライブラリに保存されました!"
             case .failure:
                 self.saveFeedbackMessage = "写真の保存に失敗しました。設定アプリで写真へのアクセスを許可してください。"
             }
@@ -186,6 +186,7 @@ struct ARCameraView: View {
     
     private func handlePhotoSelection(_ selectedImage: UIImage) {
         // ProximityDetectorベースの位置情報チェック
+        // ⚠️ UUID型で判定
         let validation = locationManager.canCaptureStamp(for: spot.id)
         
         if !validation.canCapture {
@@ -247,6 +248,7 @@ struct ARCameraView: View {
     private func locationInfoOverlay() -> some View {
         if let nearestSpot = locationManager.currentNearestSpot {
             VStack(spacing: 8) {
+                // ⚠️ UUID型で比較
                 if locationManager.isWithinCaptureRange && nearestSpot.id == spot.id {
                     // ✅ 撮影可能エリア内（25m以内）
                     HStack(spacing: 6) {
@@ -276,7 +278,7 @@ struct ARCameraView: View {
                     HStack(spacing: 6) {
                         Image(systemName: "exclamationmark.triangle")
                             .foregroundColor(.red)
-                        Text("⚠️ 別のスポット: \(nearestSpot.name)")
+                        Text(" 別のスポット: \(nearestSpot.name)")
                             .font(.headline)
                     }
                     Text("このスポットではスタンプを取得できません")
@@ -331,6 +333,7 @@ struct ARCameraView: View {
                 Spacer()
                 
                 // シャッターボタン（ProximityDetectorの判定結果で色を変更）
+                // ⚠️ UUID型で比較
                 Button(action: { snapshotTrigger.send() }) {
                     ZStack {
                         Circle()
@@ -349,28 +352,19 @@ struct ARCameraView: View {
                 
                 Spacer()
                 
-                Button(action: {}) {
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                        .font(.title2)
-                        .foregroundColor(.white)
-                }
-                .frame(width: 60)
+                Color.clear
+                    .frame(width: 60)
             }
             .padding(.horizontal, 30)
-            .padding(.bottom, 20)
-
-            HStack(spacing: 20) {
-                Button(CaptureMode.video.rawValue) { selectedMode = .video }
-                    .foregroundColor(selectedMode == .video ? .cyan : .white)
-                Button(CaptureMode.photo.rawValue) { selectedMode = .photo }
-                    .foregroundColor(selectedMode == .photo ? .cyan : .white)
-            }
-            .font(.headline)
+            .padding(.bottom, 6)
+            .padding(.top, 10)
+            .background(Color.black.opacity(0.3))
+            .offset(y:20)
         }
-        .padding(.top, 20)
-        .padding(.bottom, 30)
+        .padding(.top, 80)
+        .padding(.bottom, 10)
         .frame(maxWidth: .infinity)
-        .background(Color.black.opacity(0.3))
+        
     }
     
     // 使い方ガイド
@@ -402,12 +396,12 @@ struct ARCameraView: View {
 }
 
 #Preview {
-    let previewSpot = StampManager().allSpots.first ?? Spot(id: "preview-spot", name: "Preview Spot", placeholderImageName: "questionmark.circle", modelName: "box.usdz", coordinate: CLLocationCoordinate2D(latitude: 34.6901, longitude: 135.1955))
+
+    let previewSpot = Spot.testSpot
     
     ARCameraView(
         spot: previewSpot,
         activeTab: .constant(.home),
-        stampManager: StampManager()
+        stampManager: StampManager.shared
     )
 }
-

@@ -10,176 +10,313 @@ import SwiftUI
 struct StampCardView: View {
     @ObservedObject var stampManager: StampManager
     @Namespace private var animation
-    @State private var selectedEvent: String = "みんなで!アート探検 in HAT神戸"
+    @State private var selectedEvent: Event?
+    @State private var availableEvents: [Event] = []
+    @State private var selectedSpot: Spot?
     
-    let eventList = [
-        "みんなで!アート探検 in HAT神戸",
-        "神戸マラソン2025",
-        "ルミナリエスタンプラリー",
-        "港町めぐりツアー"
-    ]
+    // 追加: プロフィール画像を取得
+    @AppStorage("profileImageData") private var profileImageData: Data?
+    @State private var profileImage: UIImage?
+    
+    // イニシャライザを追加(引数なしで呼び出せるように)
+    init() {
+        self.stampManager = StampManager.shared
+    }
+
+    init(stampManager: StampManager) {
+        self.stampManager = stampManager
+    }
+    
+    // 表示するスポットを動的に決定
+    private var displayedSpots: [Spot] {
+        if selectedEvent != nil {
+            return stampManager.currentEventSpots
+        } else {
+            return stampManager.allSpots
+        }
+    }
+    
+    // 🔧 修正: 取得済みスタンプ数を計算
+    private var displayedAcquiredCount: Int {
+        if selectedEvent != nil {
+            return stampManager.currentEventAcquiredCount
+        } else {
+            return stampManager.acquiredStampCount
+        }
+    }
+    
+    // 🔧 修正: 総スポット数を計算
+    private var displayedTotalCount: Int {
+        if selectedEvent != nil {
+            return stampManager.currentEventSpotCount
+        } else {
+            return stampManager.totalSpotCount
+        }
+    }
     
     var body: some View {
-        GeometryReader {
-            let screenSize: CGSize = $0.size
-            
-            NavigationStack {
-                ScrollView(.vertical) {
-                    VStack(spacing: 32) {
-                        /// Event Selector (右上)
-                        HStack {
-                            Spacer()
-                            EventSelectorMenu()
-                        }
-                        
-//#if DEBUG
-//                        // デバッグ用ボタン
-//                        HStack(spacing: 12) {
-//                            Button("スタンプ取得") {
-//                                print("🔘 ボタンが押されました")
-//                                stampManager.debugAcquireFirstStamp()
-//                            }
-//                            .padding(.horizontal, 16)
-//                            .padding(.vertical, 8)
-//                            .background(Color.blue)
-//                            .foregroundColor(.white)
-//                            .cornerRadius(8)
-//                            
-//                            Button("全リセット") {
-//                                print("🔘 リセットボタンが押されました")
-//                                stampManager.resetAllStamps()
-//                            }
-//                            .padding(.horizontal, 16)
-//                            .padding(.vertical, 8)
-//                            .background(Color.red)
-//                            .foregroundColor(.white)
-//                            .cornerRadius(8)
-//                        }
-//#endif
-                        /// Progress Bar (真ん中)
-                        ZStack {
-                            StampProgressBar(
-                                stampManager: stampManager,
-                                size: 150,
-                                showPercentage: false
-                            )
-                            
-                            // 中央に円形の画像を表示
-                            Image("hatkobe_1")
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 120, height: 120)
-                                .clipShape(Circle())
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.white, lineWidth: 2)
-                                )
-                        }
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(.top, 32)
-                        .padding(.bottom, 8)
-                        
-                        VStack {
-                            Text("取得スタンプ数 ")
-                                .font(.system(size: 20, weight: .bold, design: .rounded))
-                                .foregroundColor(Color(red: 0.1, green: 0.1, blue: 0.1))
-                            HStack {
-                                Text("\(stampManager.acquiredStampCount)")
-                                    .font(.system(size: 40, weight: .bold, design: .rounded))
-                                    .foregroundColor(Color("DarkBlue"))
-                                    .contentTransition(.numericText())
-                                
-                                Text("/\(stampManager.totalSpotCount)")
-                                    .font(.system(size: 40, weight: .bold, design: .rounded))
-                                    .foregroundColor(Color(red: 0.1, green: 0.1, blue: 0.1))
-                            }
-                            .animation(.spring(), value: stampManager.acquiredStampCount)
-                        }
-                        
-                        /// Stamp Cards Grid
-                        LazyVGrid(columns: Array(repeating: GridItem(spacing: 10), count: 2),
-                                  spacing: 10) {
-                            ForEach(stampManager.allSpots) { spot in
-                                /// ImageCardView
-                                NavigationLink(value: spot) {
-                                    ImageCardView(screenSize: screenSize, spot: spot, stampManager: stampManager)
-                                        .frame(height: screenSize.height * 0.4)
-                                        .contentShape(Rectangle())
-                                        .buttonStyle(CustomButtonStyle())
-                                }
-                            }
-                        }
-                                  .padding(.bottom, 56)
-                    }
-                    .padding(15)
-                    .background(
-                        // 斜めに二色で切り替え
-                        ZStack {
-                            // 背景全体(下の色)
-                            Color.white
-                            
-                            // 斜めの三角形(上の色)
-                            GeometryReader { geometry in
-                                Path { path in
-                                    path.move(to: CGPoint(x: 0, y: 0))
-                                    path.addLine(to: CGPoint(x: geometry.size.width, y: 0))
-                                    path.addLine(to: CGPoint(x: geometry.size.width, y: screenSize.height * 0.30))
-                                    path.addLine(to: CGPoint(x: 0, y: screenSize.height * 0.20))
-                                    path.closeSubpath()
-                                }
-                                .fill(Color(.gray).opacity(0.1))
-                            }
-                        }
-                    )
-                }
-                .navigationDestination(for: Spot.self) { spot in
-                    StampCardDetailView(spot: spot, animation: animation, stampManager: stampManager)
-                        .toolbarVisibility(.hidden, for: .navigationBar)
-                }
+        GeometryReader { geometry in
+            contentView(screenSize: geometry.size)
+        }
+    }
+    
+    // MARK: - Content View
+    
+    @ViewBuilder
+    private func contentView(screenSize: CGSize) -> some View {
+        NavigationStack {
+            ScrollView(.vertical) {
+                mainContent(screenSize: screenSize)
             }
-            .onAppear {
-#if DEBUG
-                // デバッグ: 最初のスポットを取得済みにする
-                stampManager.debugAcquireFirstStamp()
-                
-                // または複数のスポットを取得
-                // stampManager.debugAcquireMultipleStamps(spotIDs: [
-                //     "nada-north-plaza",
-                //     "minume-shrine",
-                //     "nagisa-park"
-                // ])
-                
-                // またはランダムに3個取得
-                // stampManager.debugAcquireRandomStamps(count: 3)
-#endif
+            .navigationDestination(item: $selectedSpot) { spot in
+                StampCardDetailView(
+                    spot: spot,
+                    animation: animation,
+                    stampManager: stampManager,
+                    spots: displayedSpots
+                )
+                .toolbarVisibility(.hidden, for: .navigationBar)
+            }
+        }
+        .task {
+            await loadInitialData()
+        }
+        .onChange(of: profileImageData) { oldValue, newValue in
+            if let data = newValue, let image = UIImage(data: data) {
+                profileImage = image
+            } else {
+                profileImage = nil
+            }
+        }
+        .onChange(of: selectedEvent) { oldValue, newEvent in
+            // DetailViewを開いている場合は閉じる
+            if selectedSpot != nil {
+                selectedSpot = nil
+            }
+            
+            Task {
+                if let event = newEvent {
+                    await stampManager.fetchSpots(for: event)
+                }
             }
         }
     }
     
-    // 最大幅を計算する関数
-    private func calculateMaxWidth() -> CGFloat {
-        let font = UIFont.systemFont(ofSize: 14, weight: .semibold)
-        var maxWidth: CGFloat = 0
+    // MARK: - Main Content
+    
+    @ViewBuilder
+    private func mainContent(screenSize: CGSize) -> some View {
+        VStack(spacing: 32) {
+            // Event Selector
+            HStack {
+                Spacer()
+                EventSelectorMenu()
+            }
+            
+            // Progress Bar with Profile Image
+            profileSection
+            
+            // Stamp Count
+            stampCountSection
+            
+            // Stamp Cards Grid
+            stampGridSection(screenSize: screenSize)
+        }
+        .padding(15)
+        .background(diagonalBackground(screenSize: screenSize))
+    }
+    
+    // MARK: - Profile Section
+    
+    private var profileSection: some View {
+        ZStack {
+            StampProgressBar(
+                stampManager: stampManager,
+                size: 150,
+                showPercentage: false,
+                useEventProgress: selectedEvent != nil
+            )
+            
+            profileImageView
+        }
+        .frame(maxWidth: .infinity, alignment: .center)
+        .padding(.top, 32)
+        .padding(.bottom, 8)
+    }
+    
+    @ViewBuilder
+    private var profileImageView: some View {
+        if let profileImage = profileImage {
+            Image(uiImage: profileImage)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 120, height: 120)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(Color.white, lineWidth: 2))
+        } else {
+            Image("hatkobe_1")
+                .resizable()
+                .scaledToFill()
+                .frame(width: 120, height: 120)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(Color.white, lineWidth: 2))
+        }
+    }
+    
+    // MARK: - Stamp Count Section
+    
+    private var stampCountSection: some View {
+        VStack {
+            Text("取得スタンプ数 ")
+                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .foregroundColor(Color(red: 0.1, green: 0.1, blue: 0.1))
+            
+            HStack {
+                Text("\(displayedAcquiredCount)")
+                    .font(.system(size: 40, weight: .bold, design: .rounded))
+                    .foregroundColor(Color("DarkBlue"))
+                    .contentTransition(.numericText())
+                
+                Text("/\(displayedTotalCount)")
+                    .font(.system(size: 40, weight: .bold, design: .rounded))
+                    .foregroundColor(Color(red: 0.1, green: 0.1, blue: 0.1))
+            }
+            .animation(.spring(), value: displayedAcquiredCount)
+        }
+    }
+    
+    // MARK: - Stamp Grid Section
+    
+    @ViewBuilder
+    private func stampGridSection(screenSize: CGSize) -> some View {
+        ZStack {
+            if stampManager.isLoadingEventSpots {
+                loadingView
+            } else if displayedSpots.isEmpty {
+                emptyStateView
+            } else {
+                spotGridView(screenSize: screenSize)
+            }
+        }
+        .animation(.easeInOut(duration: 0.3), value: stampManager.isLoadingEventSpots)
+        .animation(.easeInOut(duration: 0.3), value: displayedSpots.count)
+        .padding(.bottom, 56)
+    }
+    
+    private var loadingView: some View {
+        VStack(spacing: 16) {
+            ProgressView()
+                .scaleEffect(1.5)
+            Text("スポットを読み込み中...")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 200)
+    }
+    
+    private var emptyStateView: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "map.fill")
+                .font(.system(size: 48))
+                .foregroundColor(.gray)
+            Text("スポットがありません")
+                .font(.headline)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 200)
+    }
+    
+    @ViewBuilder
+    private func spotGridView(screenSize: CGSize) -> some View {
+        let columns = Array(repeating: GridItem(spacing: 10), count: 2)
         
-        for event in eventList {
-            let attributes = [NSAttributedString.Key.font: font]
-            let size = (event as NSString).size(withAttributes: attributes)
-            maxWidth = max(maxWidth, size.width)
+        LazyVGrid(columns: columns, spacing: 10) {
+            ForEach(displayedSpots) { spot in
+                Button {
+                    selectedSpot = spot
+                } label: {
+                    ImageCardView(screenSize: screenSize, spot: spot, stampManager: stampManager)
+                        .frame(height: screenSize.height * 0.4)
+                }
+                .buttonStyle(CustomButtonStyle())
+            }
+        }
+    }
+    
+    // MARK: - Background
+    
+    @ViewBuilder
+    private func diagonalBackground(screenSize: CGSize) -> some View {
+        ZStack {
+            Color.white
+            
+            GeometryReader { geometry in
+                Path { path in
+                    path.move(to: CGPoint(x: 0, y: 0))
+                    path.addLine(to: CGPoint(x: geometry.size.width, y: 0))
+                    path.addLine(to: CGPoint(x: geometry.size.width, y: screenSize.height * 0.30))
+                    path.addLine(to: CGPoint(x: 0, y: screenSize.height * 0.20))
+                    path.closeSubpath()
+                }
+                .fill(Color(.gray).opacity(0.1))
+            }
+        }
+    }
+    
+    // MARK: - Event Handlers
+    
+    private func loadInitialData() async {
+        if let data = profileImageData, let image = UIImage(data: data) {
+            profileImage = image
         }
         
-        return maxWidth + 16  // 余白を追加
+        await fetchAvailableEvents()
+        
+        // 初期選択として現在開催中のイベントを設定
+        if selectedEvent == nil, let currentEvent = stampManager.currentEvent {
+            selectedEvent = currentEvent
+            await stampManager.fetchSpots(for: currentEvent)
+        }
+    }
+    
+    // MARK: - Fetch Available Events
+    
+    private func fetchAvailableEvents() async {
+        do {
+            let response = try await SupabaseManager.shared.client
+                .from("events")
+                .select()
+                .eq("status", value: true)
+                .eq("is_public", value: true)
+                .order("start_time", ascending: false)
+                .execute()
+            
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            
+            let events = try decoder.decode([Event].self, from: response.data)
+            
+            await MainActor.run {
+                self.availableEvents = events
+                print("✅ Available events fetched: \(events.count)")
+            }
+        } catch {
+            print("❌ Error fetching available events: \(error)")
+        }
     }
     
     @ViewBuilder
     func EventSelectorMenu() -> some View {
         Menu {
-            ForEach(eventList, id: \.self) { event in
+            ForEach(availableEvents) { event in
                 Button(action: {
                     selectedEvent = event
                 }) {
                     HStack {
-                        Text(event)
-                        if selectedEvent == event {
+                        Text(event.name)
+                        if selectedEvent?.id == event.id {
                             Image(systemName: "checkmark")
                         }
                     }
@@ -192,12 +329,12 @@ struct StampCardView: View {
                         .font(.system(size: 10, weight: .medium))
                         .foregroundColor(.gray)
                     
-                    Text(selectedEvent)
+                    Text(selectedEvent?.name ?? "イベントを選択")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.primary)
                         .lineLimit(2)
                         .multilineTextAlignment(.center)
-                        .frame(width: calculateMaxWidth(), alignment: .center)
+                        .frame(minWidth: 80, maxWidth: 180)
                 }
                 
                 Image(systemName: "chevron.down")
@@ -219,45 +356,34 @@ struct ImageCardView: View {
     @ObservedObject var stampManager: StampManager
     
     var body: some View {
-        GeometryReader {
-            let size = $0.size
+        GeometryReader { geo in
+            let size = geo.size
             
             ZStack {
                 // 背景画像
                 if let stampImage = stampManager.getImage(for: spot) {
-                    // 取得済み: 撮影した画像
                     Image(uiImage: stampImage)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
                         .frame(width: size.width, height: size.height)
                         .clipped()
                         .cornerRadius(15)
-                } else if let assetImage = UIImage(named: spot.placeholderImageName) {
-                    // 未取得: プレースホルダー画像（グレーアウト）
-                    Image(uiImage: assetImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: size.width, height: size.height)
-                        .clipped()
-                        .cornerRadius(15)
+                } else {
+                    spotImageView(size: size)
                         .grayscale(1)
                         .opacity(0.4)
                         .overlay(
                             Color.black.opacity(0.6)
                                 .cornerRadius(15)
                         )
-                } else {
-                    RoundedRectangle(cornerRadius: 15)
-                        .fill(.fill)
                 }
                 
-                // 取得済みのスタンプクリア画像（右上）
+                // 取得済みのスタンプクリア画像(右上)
                 if stampManager.isStampAcquired(spotID: spot.id) {
                     VStack {
                         HStack {
                             Spacer()
                             
-                            // StampClear.pngを表示
                             if let stampClearImage = UIImage(named: "StampClear") {
                                 Image(uiImage: stampClearImage)
                                     .resizable()
@@ -265,7 +391,6 @@ struct ImageCardView: View {
                                     .frame(width: 100, height: 100)
                                     .padding(6)
                             } else {
-                                // StampClear.pngが見つからない場合はチェックマーク
                                 ZStack {
                                     Circle()
                                         .fill(Color.white)
@@ -287,7 +412,6 @@ struct ImageCardView: View {
                     Spacer()
                     
                     ZStack(alignment: .bottom) {
-                        // グラデーション背景（上から下に向かって濃くなる）
                         LinearGradient(
                             gradient: Gradient(colors: [
                                 Color.clear,
@@ -299,7 +423,6 @@ struct ImageCardView: View {
                         .frame(height: 80)
                         .cornerRadius(15)
                         
-                        // エリア名テキスト
                         Text(spot.name)
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(.white)
@@ -312,9 +435,67 @@ struct ImageCardView: View {
             }
         }
     }
+    
+    @ViewBuilder
+    private func spotImageView(size: CGSize) -> some View {
+        if let imageUrlString = spot.imageUrl, let imageUrl = URL(string: imageUrlString) {
+            AsyncImage(url: imageUrl) { phase in
+                switch phase {
+                case .empty:
+                    ZStack {
+                        Color.gray.opacity(0.3)
+                        ProgressView()
+                    }
+                    .frame(width: size.width, height: size.height)
+                    .cornerRadius(15)
+                    
+                case .success(let image):
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: size.width, height: size.height)
+                        .clipped()
+                        .cornerRadius(15)
+                    
+                case .failure:
+                    placeholderImageView(size: size)
+                    
+                @unknown default:
+                    placeholderImageView(size: size)
+                }
+            }
+        } else {
+            placeholderImageView(size: size)
+        }
+    }
+    
+    @ViewBuilder
+    private func placeholderImageView(size: CGSize) -> some View {
+        if let assetImage = UIImage(named: spot.placeholderImageName) {
+            Image(uiImage: assetImage)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: size.width, height: size.height)
+                .clipped()
+                .cornerRadius(15)
+        } else {
+            RoundedRectangle(cornerRadius: 15)
+                .fill(Color.gray.opacity(0.3))
+                .frame(width: size.width, height: size.height)
+                .overlay(
+                    VStack {
+                        Image(systemName: "photo")
+                            .font(.system(size: 40))
+                            .foregroundColor(.gray)
+                        Text("画像なし")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+                )
+        }
+    }
 }
 
-/// Custom Button Style
 struct CustomButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -322,5 +503,5 @@ struct CustomButtonStyle: ButtonStyle {
 }
 
 #Preview {
-    StampCardView(stampManager: StampManager())
+    StampCardView()
 }

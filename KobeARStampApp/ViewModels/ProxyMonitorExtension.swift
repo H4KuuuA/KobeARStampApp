@@ -17,9 +17,15 @@ extension ProximityDetector {
         from location: CLLocation,
         to spots: [Spot]
     ) -> [(spot: Spot, distance: CLLocationDistance)] {
-        return spots.compactMap { spot in
+
+        return spots.map { spot in
             let coord = spot.coordinate
-            let spotLocation = CLLocation(latitude: coord.latitude, longitude: coord.longitude)
+            
+            let spotLocation = CLLocation(
+                latitude: coord.latitude,
+                longitude: coord.longitude
+            )
+
             let distance = location.distance(from: spotLocation)
             
             return (spot: spot, distance: distance)
@@ -47,3 +53,4 @@ extension ProximityDetector {
         }
     }
 }
+

@@ -2,22 +2,38 @@
 //  StampManager.swift
 //  KobeARStampApp
 //
-//  Created by shikiji akito on 2025/10/14.
+//  DB連携対応版
 //
 
 import SwiftUI
 import CoreLocation
 
+@MainActor
 class StampManager: ObservableObject {
+    
+    // MARK: - Singleton
+    static let shared = StampManager()
     
     // MARK: - Properties
 
     
-    /// スポットのリスト(将来的にはDBから取得)
+    /// スポットのリスト(DBから取得)
     @Published var allSpots: [Spot] = []
     
+    /// 現在選択中のイベントに紐づくスポット
+    @Published var currentEventSpots: [Spot] = []
+    
     /// 取得済みスタンプ(ローカル保存)
-    @Published var acquiredStamps: [String: AcquiredStamp] = [:]
+    @Published var acquiredStamps: [UUID: AcquiredStamp] = [:]
+    
+    /// ローディング状態
+    @Published var isLoadingSpots = false
+    
+    /// イベント別スポット取得中
+    @Published var isLoadingEventSpots = false
+    
+    /// 現在開催中のイベント
+    @Published var currentEvent: Event?
     
     // MARK: - Computed Properties
     
@@ -27,6 +43,17 @@ class StampManager: ObservableObject {
     
     var totalSpotCount: Int {
         allSpots.count
+    }
+    
+    /// 現在選択中のイベントのスポット数（StampCardView用）
+    var currentEventSpotCount: Int {
+        currentEventSpots.count
+    }
+    
+    /// 現在選択中のイベントで取得済みのスタンプ数
+    var currentEventAcquiredCount: Int {
+        let eventSpotIds = Set(currentEventSpots.map { $0.id })
+        return acquiredStamps.keys.filter { eventSpotIds.contains($0) }.count
     }
     
     var progress: Float {
@@ -45,7 +72,7 @@ class StampManager: ObservableObject {
     
     // MARK: - Initialization
     
-    init() {
+    private init() {
         let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         stampsDirectoryURL = documentsURL.appendingPathComponent("StampImages")
         stampsJSONURL = documentsURL.appendingPathComponent("stamps.json")
@@ -56,29 +83,106 @@ class StampManager: ObservableObject {
             attributes: nil
         )
         
-        loadSpots()  // ← 先にスポットを読み込む
-        loadStamps() // ← その後にスタンプを読み込む
+        // ログイン前はデフォルトスポットを使用
+        allSpots = Self.defaultSpots
+        loadStamps() // ← スタンプは先に読み込む
+        
+        // 認証状態を監視してスポットを読み込む
+        setupAuthObserver()
+    }
+    
+    // MARK: - Auth Observer
+    
+    /// 認証状態を監視してスポットを読み込む
+    private func setupAuthObserver() {
+        Task {
+            // AuthManagerの状態変化を監視
+            for await _ in NotificationCenter.default.notifications(named: .authStateChanged) {
+                if AuthManager.shared.isAuthenticated {
+                    await loadSpotsFromDatabase()
+                } else {
+                    // ログアウト時はデフォルトスポットに戻す
+                    allSpots = Self.defaultSpots
+                }
+            }
+        }
+    }
+    
+    // MARK: - Data Loading
+    
+    /// DBからスポットを非同期で読み込む
+    func loadSpotsFromDatabase() async {
+        isLoadingSpots = true
+        
+        do {
+            let spots = try await DataRepository.shared.fetchActiveSpots()
+            allSpots = spots.isEmpty ? Self.defaultSpots : spots
+            print("✅ DBからスポット読み込み成功: \(spots.count)件")
+        } catch {
+            print("⚠️ スポット読み込み失敗、デフォルトを使用: \(error)")
+            allSpots = Self.defaultSpots
+        }
+        
+        isLoadingSpots = false
+    }
+    
+    /// DBからスポットを取得（外部から呼び出し可能）
+    func fetchSpots() async {
+        await loadSpotsFromDatabase()
+    }
+    
+    /// 特定のイベントに紐づくスポットを取得
+    func fetchSpots(for event: Event) async {
+        isLoadingEventSpots = true
+        
+        do {
+            print("📥 Fetching spots for event: \(event.name)")
+            
+            // event_spotテーブルから該当イベントのスポットIDを取得
+            let response = try await SupabaseManager.shared.client
+                .from("event_spot")
+                .select("spot_id")
+                .eq("event_id", value: event.id.uuidString)
+                .execute()
+            
+            struct EventSpotRelation: Codable {
+                let spot_id: String
+            }
+            
+            let decoder = JSONDecoder()
+            let relations = try decoder.decode([EventSpotRelation].self, from: response.data)
+            let spotIds = relations.compactMap { UUID(uuidString: $0.spot_id) }
+            
+            print("📥 Found \(spotIds.count) spot IDs for event")
+            
+            // 取得したIDに該当するスポットをallSpotsからフィルタリング
+            currentEventSpots = allSpots.filter { spotIds.contains($0.id) }
+            
+            print("✅ Event spots fetched: \(currentEventSpots.count)")
+            
+        } catch {
+            print("❌ Error fetching event spots: \(error)")
+            // エラー時は空配列にする
+            currentEventSpots = []
+        }
+        
+        isLoadingEventSpots = false
     }
     
     // MARK: - Spot Management
     
-    /// スポットを読み込む(将来的にはDBから)
-    private func loadSpots() {
-        // 現在はハードコード、将来的にはDB連携
-        allSpots = Self.defaultSpots
-    }
-    
-    /// DBからスポットを取得(将来の実装)
+    /// DBからスポットを取得（後方互換性のため残す）
     func fetchSpotsFromDB() async throws {
-        // TODO: Firebase/Supabaseから取得
-        // let spots = try await spotRepository.fetchSpots()
-        // await MainActor.run {
-        //     self.allSpots = spots
-        // }
+        isLoadingSpots = true
+        
+        let spots = try await DataRepository.shared.fetchActiveSpots()
+        
+        self.allSpots = spots
+        self.isLoadingSpots = false
     }
     
     /// スポットIDからSpotを取得
-    func getSpot(by id: String) -> Spot? {
+    func getSpot(by id: UUID) -> Spot? {
         return allSpots.first { $0.id == id }
     }
     
@@ -99,7 +203,7 @@ class StampManager: ObservableObject {
         }
         
         // 3. 画像を保存
-        let fileName = spot.id + ".jpeg"
+        let fileName = spot.id.uuidString + ".jpeg"
         let fileURL = stampsDirectoryURL.appendingPathComponent(fileName)
         
         guard let data = image.jpegData(compressionQuality: 0.8) else {
@@ -111,20 +215,37 @@ class StampManager: ObservableObject {
             try data.write(to: fileURL)
             
             // 4. メタデータを保存
+            // ⚠️ 一時的にダミーのuserIdを使用(ログイン機能実装後に修正)
+            let userId = UUID() // TODO: AuthService.shared.currentUser?.id を使用
+            
             let newStamp = AcquiredStamp(
                 id: UUID(),
-                spotID: spot.id,
-                imageFileName: fileName,
-                acquiredDate: Date()
+                userId: userId,
+                spotId: spot.id,
+                eventId: nil,
+                latitude: nil,
+                longitude: nil,
+                visitedAt: Date(),
+                spotNameSnapshot: spot.name,
+                eventNameSnapshot: nil
             )
+            
             acquiredStamps[spot.id] = newStamp
             saveStamps()
             
             print("✅ スタンプを保存: \(spot.name)")
             
-            // 5. オプション: サーバーに同期
+            // 5. サーバーに同期(ログイン機能実装後に有効化)
             // Task {
-            //     try? await syncStampToServer(stamp: newStamp)
+            //     do {
+            //         try await DataRepository.shared.checkIn(
+            //             spotId: spot.id,
+            //             latitude: 0, // TODO: 実際の位置情報を渡す
+            //             longitude: 0
+            //         )
+            //     } catch {
+            //         print("⚠️ サーバー同期失敗: \(error)")
+            //     }
             // }
             
         } catch {
@@ -133,7 +254,7 @@ class StampManager: ObservableObject {
     }
     
     /// スタンプが取得済みかチェック
-    func isStampAcquired(spotID: String) -> Bool {
+    func isStampAcquired(spotID: UUID) -> Bool {
         return acquiredStamps[spotID] != nil
     }
     
@@ -177,7 +298,7 @@ class StampManager: ObservableObject {
         }
         
         do {
-            acquiredStamps = try JSONDecoder().decode([String: AcquiredStamp].self, from: data)
+            acquiredStamps = try JSONDecoder().decode([UUID: AcquiredStamp].self, from: data)
             print("✅ スタンプリストを読み込み: \(acquiredStamps.count)個")
             
             // DBから削除されたSpotのスタンプをクリーンアップ
@@ -207,18 +328,6 @@ class StampManager: ObservableObject {
         }
     }
     
-    // MARK: - Sync (Future Implementation)
-    
-    /// サーバーにスタンプ取得履歴を同期(将来の実装)
-    private func syncStampToServer(stamp: AcquiredStamp) async throws {
-        // TODO: Firebase/Supabaseに送信
-        // await apiClient.uploadStampAcquisition(
-        //     userID: currentUserID,
-        //     spotID: stamp.spotID,
-        //     acquiredDate: stamp.acquiredDate
-        // )
-    }
-    
     // MARK: - Category Filtering
     
     func getSpots(by category: String) -> [Spot] {
@@ -228,6 +337,45 @@ class StampManager: ObservableObject {
     var allCategories: [String] {
         let categories = allSpots.compactMap { $0.category }
         return Array(Set(categories)).sorted()
+    }
+    
+    // MARK: - Event Management
+    
+    /// Supabaseから現在開催中のイベントを取得
+    func fetchCurrentEvent() async {
+        print("📥 Fetching current event from Supabase...")
+        
+        do {
+            let now = Date()
+            let formatter = ISO8601DateFormatter()
+            let nowString = formatter.string(from: now)
+            
+            print("📥 Current time: \(nowString)")
+            
+            // 現在開催中のイベントを取得（1件のみ）
+            let response = try await SupabaseManager.shared.client
+                .from("events")
+                .select()
+                .eq("status", value: true)
+                .eq("is_public", value: true)
+                .lte("start_time", value: nowString)
+                .gte("end_time", value: nowString)
+                .order("start_time", ascending: false)
+                .limit(1)
+                .execute()
+            
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            
+            let events = try decoder.decode([Event].self, from: response.data)
+            
+            self.currentEvent = events.first
+            print("✅ Current event fetched: \(events.first?.name ?? "None")")
+            
+        } catch {
+            print("❌ Error fetching current event: \(error)")
+            self.currentEvent = nil
+        }
     }
     
     // MARK: - Debug
@@ -244,7 +392,7 @@ class StampManager: ObservableObject {
     }
     
     /// デバッグ用: プレースホルダー画像を使って特定のスポットのスタンプを取得済みにする
-    func debugAcquireStamp(spotID: String) {
+    func debugAcquireStamp(spotID: UUID) {
         guard let spot = getSpot(by: spotID) else {
             print("❌ スポットが見つかりません: \(spotID)")
             return
@@ -271,7 +419,7 @@ class StampManager: ObservableObject {
     }
     
     /// デバッグ用: 複数のスポットをまとめて取得済みにする
-    func debugAcquireMultipleStamps(spotIDs: [String]) {
+    func debugAcquireMultipleStamps(spotIDs: [UUID]) {
         for spotID in spotIDs {
             debugAcquireStamp(spotID: spotID)
         }
@@ -289,129 +437,31 @@ class StampManager: ObservableObject {
     #endif
 }
 
-// MARK: - Default Spots (mockPinsに対応した10箇所 + 説明文 + マップ表示情報)
+// MARK: - Default Spots (テスト用データ)
 
 extension StampManager {
     static let defaultSpots: [Spot] = [
+        // ⚠️ 注意: 本番ではDBから取得するため、このデータは削除予定
+        // 現在はテスト用として残しています
+        
         Spot(
-            id: "nada-north-plaza",
+            id: UUID(),
             name: "灘駅北口広場",
-            placeholderImageName: "hatkobe_1",
-            modelName: "Dragon_2.5_For_Animations.usdz",
-            coordinate: CLLocationCoordinate2D(latitude: 34.70622423097614, longitude: 135.21616725739096),
             subtitle: "灘駅北側の待ち合わせ広場",
-            category: "公園",
             description: "灘駅の北口にある広場。集合や待ち合わせに便利なスポットです。",
-            pinColorName: "#FF0000",
-            imageURL: URL(string: "https://example.com/images/nada_north_plaza.png")
-        ),
-        Spot(
-            id: "minume-shrine",
-            name: "敏馬神社社殿",
-            placeholderImageName: "hatkobe_2",
-            modelName: "Dragon_2.5_For_Animations.usdz",
-            coordinate: CLLocationCoordinate2D(latitude: 34.70344357985072, longitude: 135.21879732451967),
-            subtitle: "海風香る縁切りの社",
-            category: "文化",
-            description: "敏馬神社は、灘区の海沿いに位置する歴史ある神社です。古くから水神を祀り、漁業や航海の守護とともに、縁切りの神としても知られています。海風に包まれ、灘の人々の信仰と文化を今に伝える神社です。",
-            pinColorName: "#0000FF",
-            imageURL: URL(string: "https://example.com/images/nada_south_cafe.png")
-        ),
-        Spot(
-            id: "nagisa-park",
-            name: "なぎさ公園",
-            placeholderImageName: "hatkobe_3",
-            modelName: "Dragon_2.5_For_Animations.usdz",
-            coordinate: CLLocationCoordinate2D(latitude: 34.6970625279125, longitude: 135.21454865587015),
-            subtitle: "海風とアートが彩る公園",
+            address: "兵庫県神戸市灘区",
+            latitude: 34.70622423097614,
+            longitude: 135.21616725739096,
+            radius: 50,
             category: "公園",
-            description: "なぎさ公園は灘区の海沿いに広がる都市公園で、芝生広場やウォーキングコース、アートモニュメントが楽しめる憩いの場です。",
-            pinColorName: "#00FF00",
-            imageURL: URL(string: "https://example.com/images/nada_central_park.png")
-        ),
-        Spot(
-            id: "saigo-river-park",
-            name: "西郷河川公園",
-            placeholderImageName: "hatkobe_4",
-            modelName: "Dragon_2.5_For_Animations.usdz",
-            coordinate: CLLocationCoordinate2D(latitude: 34.702412041570284, longitude: 135.22474839795566),
-            subtitle: "川のそばでバスケも遊びも",
-            category: "公園",
-            description: "住宅街にひっそり佇む 西郷川河口公園 は、河口ならではの開放感と桜が楽しめる小さな都市公園。バスケットゴールも３箇所あり、遊びとくつろぎが両立する場所です。",
-            pinColorName: "#FFFF00",
-            imageURL: URL(string: "https://example.com/images/rokkodo_gallery.png")
-        ),
-        Spot(
-            id: "museum-road",
-            name: "ミュージアムロード",
-            placeholderImageName: "hatkobe_5",
-            modelName: "Dragon_2.5_For_Animations.usdz",
-            coordinate: CLLocationCoordinate2D(latitude: 34.701138596503135, longitude: 135.2180575627066),
-            subtitle: "文化が連なるアート街道",
-            category: "アート",
-            description: "兵庫県立美術館から神戸市立王子動物園まで約1.2 kmにわたる散策路。多彩な美術館・動物園・パブリックアートが並び、灘区の『芸術と文化の軸』を体感できます。",
-            pinColorName: "#FFA500",
-            imageURL: URL(string: "https://example.com/images/oji_park_area.png")
-        ),
-        Spot(
-            id: "hyogo-museum",
-            name: "兵庫県立美術館",
-            placeholderImageName: "hatkobe_6",
-            modelName: "Dragon_2.5_For_Animations.usdz",
-            coordinate: CLLocationCoordinate2D(latitude: 34.69938435220899, longitude: 135.21824370509106),
-            subtitle: "海辺に佇むモダンアートの殿堂",
-            category: "アート",
-            description: "世界的建築家 安藤忠雄 設計による建築美と現代アートが融合するギャラリー空間です。家族や大人も楽しめる展覧会や教育プログラムも充実しています。",
-            pinColorName: "#00FFFF",
-            imageURL: URL(string: "https://example.com/images/coast_walk_view.png")
-        ),
-        Spot(
-            id: "disaster-memorial-center",
-            name: "震災記念21世紀研究機構",
-            placeholderImageName: "hatkobe_1",
-            modelName: "Dragon_2.5_For_Animations.usdz",
-            coordinate: CLLocationCoordinate2D(latitude: 34.699200000000, longitude: 135.216300000000),
-            subtitle: "震災の記憶を未来へ紡ぐ",
-            category: "教育",
-            description: "阪神・淡路大震災を契機に、地域の安心・人のケア・共生社会の実現に向けて調査研究を行い、知見を社会に届ける専門機関です。",
-            pinColorName: "#800080",
-            imageURL: URL(string: "https://example.com/images/hat_art_south.png")
-        ),
-        Spot(
-            id: "oji-zoo",
-            name: "王子動物園",
-            placeholderImageName: "hatkobe_2",
-            modelName: "Dragon_2.5_For_Animations.usdz",
-            coordinate: CLLocationCoordinate2D(latitude: 34.70978782499848, longitude: 135.21521542400927),
-            subtitle: "六甲山麓に広がる動物公園",
-            category: "娯楽",
-            description: "約120種700点以上の動物たちが暮らし、コアラやゾウ、フラミンゴなど様々な動物を観察できます。遊園地や旧ハンター住宅などの歴史的建造物も併設され、家族連れにも楽しめるスポットです。",
-            pinColorName: "#FF00FF",
-            imageURL: URL(string: "https://example.com/images/hat_coast_north.png")
-        ),
-        Spot(
-            id: "yokoo-museum",
-            name: "横尾忠則現代美術館",
-            placeholderImageName: "hatkobe_3",
-            modelName: "Dragon_2.5_For_Animations.usdz",
-            coordinate: CLLocationCoordinate2D(latitude: 34.708589194409825, longitude: 135.21337999921263),
-            subtitle: "横尾忠則ワールドが息づく",
-            category: "アート",
-            description: "兵庫県神戸市灘区にあるアーティスト 横尾忠則 の膨大な作品群を収蔵・展示する美術館です。ポスター・絵画・コラージュなど多彩な創作表現を通じて現代アートの魅力を体感できます。",
-            pinColorName: "#00008B",
-            imageURL: URL(string: "https://example.com/images/music_plaza_stage.png")
-        ),
-        Spot(
-            id: "kobe-ice-campus",
-            name: "Sysmex Kobe Ice Campus",
-            placeholderImageName: "hatkobe_4",
-            modelName: "Dragon_2.5_For_Animations.usdz",
-            coordinate: CLLocationCoordinate2D(latitude: 34.698971647969785, longitude: 135.2138738394403),
-            subtitle: "神戸のスケート文化を育む拠点",
-            category: "スポーツ",
-            description: "神戸市を拠点にスケートスポーツの普及・育成を推進する団体。年中利用可能なアイスリンクも開設し、初心者から競技選手まで幅広く支援しています。",
-            pinColorName: "#32CD32",
-            imageURL: URL(string: "https://example.com/images/monument_square.png")
-        ),
+            pinColor: "#FF0000",
+            imageUrl: "https://example.com/images/nada_north_plaza.png",
+            arModelId: nil,
+            isActive: true,
+            createdByUser: nil,
+            createdAt: Date(),
+            updatedAt: nil,
+            deletedAt: nil
+        )
     ]
 }

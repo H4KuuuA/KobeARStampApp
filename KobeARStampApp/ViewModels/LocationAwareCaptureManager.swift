@@ -119,9 +119,10 @@ class LocationAwareCaptureManager: ObservableObject {
     // MARK: - Validation
     
     /// 特定のスポットで撮影可能かどうかを判定
+    /// ⚠️ UUID型のパラメータに変更
     /// - Parameter spotID: 撮影しようとしているスポットのID
     /// - Returns: (撮影可能か, メッセージ)
-    func canCaptureStamp(for spotID: String) -> (canCapture: Bool, message: String) {
+    func canCaptureStamp(for spotID: UUID) -> (canCapture: Bool, message: String) {
         // 撮影可能範囲外の場合
         guard isWithinCaptureRange else {
             if let spot = currentNearestSpot {
@@ -138,6 +139,7 @@ class LocationAwareCaptureManager: ObservableObject {
         }
         
         // スポットIDが一致しない場合
+        // ⚠️ UUID型で比較
         guard nearestSpot.id == spotID else {
             return (false, "このスポットは現在地と一致しません（近く: \(nearestSpot.name)）")
         }
@@ -183,9 +185,8 @@ extension LocationAwareCaptureManager {
     /// プレビュー用の便利イニシャライザ
     static func preview() -> LocationAwareCaptureManager {
         let manager = LocationAwareCaptureManager()
-        if let testSpot = Spot.testSpot as Spot? {
-            manager.setManualSpot(testSpot, distance: 15.0)
-        }
+        // ⚠️ testSpot は Spot 型なので as Spot? は不要
+        manager.setManualSpot(Spot.testSpot, distance: 15.0)
         return manager
     }
 }

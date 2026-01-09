@@ -1,10 +1,3 @@
-//
-//  RestrictedMapView.swift
-//  KobeARStampApp
-//
-//  Created by 大江悠都 on 2025/07/07.
-//
-
 import SwiftUI
 import MapKit
 
@@ -12,6 +5,8 @@ struct RestrictedMapView: UIViewRepresentable {
     let centerCoordinate: CLLocationCoordinate2D
     let radiusInMeters: CLLocationDistance
     let spots: [Spot]
+    @Binding var shouldCenterOnUser: Bool
+    @Binding var shouldResetNorth: Bool
     
     /// 中心座標と半径をもとに、表示・移動・ズーム範囲を制限した MKMapView を生成する
     /// 円形オーバーレイを表示して、範囲の視覚的な目印も追加する
@@ -21,7 +16,6 @@ struct RestrictedMapView: UIViewRepresentable {
         mapView.delegate = context.coordinator
         
         mapView.showsUserLocation = true
-        mapView.userTrackingMode = .follow
         
         let center = centerCoordinate
         let radius = radiusInMeters
@@ -55,12 +49,48 @@ struct RestrictedMapView: UIViewRepresentable {
         tapGesture.delegate = context.coordinator
         mapView.addGestureRecognizer(tapGesture)
         
+        // 位置情報の監視を開始
+        context.coordinator.setupLocationMonitoring(mapView: mapView, center: center, radius: radius)
+        
         return mapView
     }
     
     
     func updateUIView(_ uiView: MKMapView, context: Context) {
-        // 状態に変更があった時の機能の追加場所
+        // アノテーションの完全更新（頻繁でない更新向け）
+        let currentSpotAnnotations = uiView.annotations.compactMap { $0 as? SpotAnnotation }
+        uiView.removeAnnotations(currentSpotAnnotations)
+        
+        let newAnnotations = spots.map { SpotAnnotation(spot: $0) }
+        uiView.addAnnotations(newAnnotations)
+        
+        // 現在地に移動
+        if shouldCenterOnUser {
+            if let userLocation = uiView.userLocation.location {
+                let region = MKCoordinateRegion(
+                    center: userLocation.coordinate,
+                    latitudinalMeters: 500,
+                    longitudinalMeters: 500
+                )
+                uiView.setRegion(region, animated: true)
+            }
+            // フラグをリセット
+            DispatchQueue.main.async {
+                shouldCenterOnUser = false
+            }
+        }
+        
+        // 北向きにリセット
+        if shouldResetNorth {
+            var currentCamera = uiView.camera
+            currentCamera.heading = 0
+            uiView.setCamera(currentCamera, animated: true)
+            
+            // フラグをリセット
+            DispatchQueue.main.async {
+                shouldResetNorth = false
+            }
+        }
     }
     
     func makeCoordinator() -> Coordinator {
@@ -68,8 +98,75 @@ struct RestrictedMapView: UIViewRepresentable {
     }
     
     class Coordinator: NSObject, MKMapViewDelegate, UIGestureRecognizerDelegate {
-        private var spotLastTapTimes: [String: Date] = [:]
+        // ⚠️ UUID型のキーに変更
+        private var spotLastTapTimes: [UUID: Date] = [:]
         private let tapDebounceInterval: TimeInterval = 0.3
+        private var isUserInRange = false
+        private var hasSetInitialRegion = false
+        
+        // 位置情報の監視を設定
+        func setupLocationMonitoring(mapView: MKMapView, center: CLLocationCoordinate2D, radius: CLLocationDistance) {
+            // 初期チェック（位置情報が利用可能か）
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                self?.checkUserLocation(mapView: mapView, center: center, radius: radius)
+            }
+        }
+        
+        // ユーザー位置が範囲内かチェック
+        private func checkUserLocation(mapView: MKMapView, center: CLLocationCoordinate2D, radius: CLLocationDistance) {
+            guard let userLocation = mapView.userLocation.location else {
+                // 位置情報が取得できない場合は灘駅を中心に表示
+                if !hasSetInitialRegion {
+                    setCenterToNadaStation(mapView: mapView)
+                    hasSetInitialRegion = true
+                }
+                return
+            }
+            
+            let centerLocation = CLLocation(latitude: center.latitude, longitude: center.longitude)
+            let distance = userLocation.distance(from: centerLocation)
+            
+            if distance <= radius {
+                // 範囲内
+                isUserInRange = true
+            } else {
+                // 範囲外 - 灘駅を中心に表示
+                if !isUserInRange && !hasSetInitialRegion {
+                    setCenterToNadaStation(mapView: mapView)
+                    hasSetInitialRegion = true
+                }
+                isUserInRange = false
+            }
+        }
+        
+        // 灘駅を中心に表示
+        private func setCenterToNadaStation(mapView: MKMapView) {
+            // 灘駅の座標
+            let nadaStationCoordinate = CLLocationCoordinate2D(
+                latitude: 34.706033113261704,
+                longitude: 135.21622505489043
+            )
+            
+            let region = MKCoordinateRegion(
+                center: nadaStationCoordinate,
+                latitudinalMeters: 1000,
+                longitudinalMeters: 1000
+            )
+            
+            mapView.setRegion(region, animated: true)
+            print("📍 ユーザーが範囲外のため、灘駅を中心に表示しました")
+        }
+        
+        // ユーザー位置が更新されたときに呼ばれる
+        func mapView(_ mapView: MKMapView, didUpdate userLocation: MKUserLocation) {
+            guard let location = userLocation.location else { return }
+            
+            // マップの中心座標と半径を取得（初回のみ必要な情報を保存）
+            if let centerAnnotation = mapView.annotations.first(where: { !($0 is MKUserLocation) && !($0 is SpotAnnotation) }) {
+                // 実際には制限範囲の中心を使う必要がある
+                // ここでは簡略化のため、最初のチェック後は再チェックしない
+            }
+        }
         
         func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
             // 現在地の青い点はデフォルト表示を使う
@@ -99,6 +196,7 @@ struct RestrictedMapView: UIViewRepresentable {
         func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
             guard let spotAnnotation = view.annotation as? SpotAnnotation else { return }
             
+            // ⚠️ UUID型で処理
             let spotId = spotAnnotation.spot.id
             let currentTime = Date()
             

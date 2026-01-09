@@ -103,48 +103,10 @@ struct ARModel: Identifiable, Codable, Equatable, Hashable {
 }
 
 
-// MARK: - Loader Utilities
 
-extension ARModel {
-    /// URL文字列がHTTP(S)か、バンドル内ファイル名かを自動判別してURLを返す
-    /// - Throws: URL解決に失敗した場合
-    func resolvedURL() throws -> URL {
-        // 明示的なURLとして解釈できる場合（http/https）
-        if let url = URL(string: fileUrl), let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" {
-            return url
-        }
-        
-        // バンドル内のファイル名として解釈（拡張子が含まれていてもOK）
-        let name = (fileUrl as NSString).deletingPathExtension
-        let ext = (fileUrl as NSString).pathExtension
-        if let bundleURL = Bundle.main.url(forResource: name, withExtension: ext.isEmpty ? nil : ext) {
-            return bundleURL
-        }
-        
-        // どちらでも解決できない場合はエラー
-        throw URLError(.badURL)
-    }
-    
-    /// 解決済みURLから拡張子（小文字）を返す。解決できない場合は `fileExtension` を返す
-    var resolvedFileExtension: String {
-        (try? resolvedURL().pathExtension.lowercased()) ?? fileExtension
-    }
-    
-    enum FileKind { case usdz, reality, other }
-    
-    /// 解決済み拡張子に基づくファイル種別
-    var resolvedKind: FileKind {
-        switch resolvedFileExtension {
-        case "usdz": return .usdz
-        case "reality": return .reality
-        default: return .other
-        }
-    }
-}
- 
- 
 // MARK: - Debug Extension
- 
+
+
 #if DEBUG
 extension ARModel {
     /// テスト用のサンプルARモデル
@@ -189,4 +151,6 @@ extension ARModel {
         )
     ]
 }
-#endif  
+
+#endif
+

@@ -2,7 +2,7 @@
 //  Spot.swift
 //  KobeARStampApp
 //
-//  Created by shikiji akito on 2025/10/14.
+//  Supabase DB連携対応版（完全版）
 //
 
 import SwiftUI
@@ -10,119 +10,118 @@ import Foundation
 import CoreLocation
 /// A data structure representing a single AR spot.
 
-/// スタンプラリーのスポット情報
+/// スタンプラリーのスポット情報（DB連携版）
+/// DBの spots テーブルに完全対応
 struct Spot: Identifiable, Codable, Equatable, Hashable {
-    let id: String
+    // MARK: - DB Properties (spots テーブルの全カラム)
+    
+    let id: UUID
     let name: String
-    let placeholderImageName: String
-    let modelName: String
-    let coordinate: CLLocationCoordinate2D
+
+    let subtitle: String?
+    let description: String
+    let address: String
+    let latitude: Double  // numeric(10,7)
+    let longitude: Double // numeric(10,7)
+    let radius: Int?
+    let category: String?
+    let pinColor: String?        // pin_color (HEXコード)
+    let imageUrl: String?        // image_url
+    let arModelId: UUID?         // ar_model_id
+    let isActive: Bool           // is_active (デフォルト: false)
+    let createdByUser: UUID?     // created_by_user
+    let createdAt: Date          // created_at
+    let updatedAt: Date?         // updated_at
+    let deletedAt: Date?         // deleted_at
     
-    var subtitle: String?
-    var category: String?
-    var description: String?
+    // MARK: - Computed Properties (ローカル専用)
     
-    // マップ表示用（追加）
-    var pinColorName: String?
-    var imageURL: URL?
-    
-    // カスタムイニシャライザ
-    init(
-        id: String,
-        name: String,
-        placeholderImageName: String,
-        modelName: String,
-        coordinate: CLLocationCoordinate2D,
-        subtitle: String? = nil,
-        category: String? = nil,
-        description: String? = nil,
-        pinColorName: String? = nil,
-        imageURL: URL? = nil
-    ) {
-        self.id = id
-        self.name = name
-        self.placeholderImageName = placeholderImageName
-        self.modelName = modelName
-        self.coordinate = coordinate
-        self.subtitle = subtitle
-        self.category = category
-        self.description = description
-        self.pinColorName = pinColorName
-        self.imageURL = imageURL
+    /// プレースホルダー画像名（ローカルアセット用）
+    var placeholderImageName: String {
+        // カテゴリに応じて画像名を決定
+        switch category {
+        case "観光": return "spot_placeholder_1"
+        case "飲食": return "spot_placeholder_2"
+        case "歴史": return "spot_placeholder_3"
+        case "公園": return "spot_placeholder_1"
+        case "文化": return "spot_placeholder_2"
+        case "アート": return "spot_placeholder_3"
+        case "教育": return "spot_placeholder_1"
+        case "娯楽": return "spot_placeholder_2"
+        case "スポーツ": return "spot_placeholder_3"
+        default: return "spot_placeholder_default"
+        }
+
     }
     
-    // Hashableの実装
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
+    /// ARモデルファイル名（ローカルアセット用）
+    /// 実際にはDBのar_modelテーブルから取得したfileUrlを使う
+    var modelName: String {
+        return arModelId != nil ? "model_\(id.uuidString).usdz" : "box.usdz"
     }
     
-    // Equatableの実装
-    static func == (lhs: Spot, rhs: Spot) -> Bool {
-        lhs.id == rhs.id
+    /// 座標（CLLocationCoordinate2D形式）
+    var coordinate: CLLocationCoordinate2D {
+        CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
     }
     
-    // MARK: - Codable対応
+    /// 画像URL（URL型）
+    var imageURL: URL? {
+        guard let imageUrl = imageUrl else { return nil }
+        return URL(string: imageUrl)
+    }
+    
+    /// ピンの色（SwiftUI Color）
+    var pinColorValue: Color {
+        Color(hex: pinColor ?? "#FF0000") ?? .red
+    }
+    
+    /// 表示用のID文字列（デバッグ・表示用）
+    var displayId: String {
+        id.uuidString
+    }
+    
+    /// 短縮ID（デバッグ用）
+    var shortId: String {
+        String(id.uuidString.prefix(8))
+    }
+    
+    // MARK: - Codable Keys
     
     enum CodingKeys: String, CodingKey {
         case id
         case name
-        case placeholderImageName
-        case modelName
+        case subtitle
+        case description
+        case address
         case latitude
         case longitude
-        case subtitle
+        case radius
         case category
-        case description
+        case pinColor = "pin_color"
+        case imageUrl = "image_url"
+        case arModelId = "ar_model_id"
+        case isActive = "is_active"
+        case createdByUser = "created_by_user"
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+        case deletedAt = "deleted_at"
     }
     
-    // カスタムデコーダー
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        
-        // 基本プロパティのデコード
-        id = try container.decode(String.self, forKey: .id)
-        name = try container.decode(String.self, forKey: .name)
-        placeholderImageName = try container.decode(String.self, forKey: .placeholderImageName)
-        modelName = try container.decode(String.self, forKey: .modelName)
-        subtitle = try container.decodeIfPresent(String.self, forKey: .subtitle)
-        category = try container.decodeIfPresent(String.self, forKey: .category)
-        description = try container.decodeIfPresent(String.self, forKey: .description)
-        
-        // 座標のデコード（緯度と経度は必須）
-        let lat = try container.decode(Double.self, forKey: .latitude)
-        let lon = try container.decode(Double.self, forKey: .longitude)
-        coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
+
+    // MARK: - Equatable & Hashable
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
     }
     
-    // カスタムエンコーダー
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        
-        // 基本プロパティのエンコード
-        try container.encode(id, forKey: .id)
-        try container.encode(name, forKey: .name)
-        try container.encode(placeholderImageName, forKey: .placeholderImageName)
-        try container.encode(modelName, forKey: .modelName)
-        try container.encodeIfPresent(subtitle, forKey: .subtitle)
-        try container.encodeIfPresent(category, forKey: .category)
-        try container.encodeIfPresent(description, forKey: .description)
-        
-        // 座標のエンコード（必須）
-        try container.encode(coordinate.latitude, forKey: .latitude)
-        try container.encode(coordinate.longitude, forKey: .longitude)
+    static func == (lhs: Spot, rhs: Spot) -> Bool {
+        lhs.id == rhs.id
+
     }
 
 }
 
-// MARK: - AcquiredStamp
-
-/// 取得済みスタンプの情報
-struct AcquiredStamp: Identifiable, Codable {
-    let id: UUID
-    let spotID: String
-    let imageFileName: String
-    let acquiredDate: Date
-}
 
 // MARK: - Debug Extension
 
@@ -130,14 +129,67 @@ struct AcquiredStamp: Identifiable, Codable {
 extension Spot {
     /// テスト用のサンプルスポット
     static let testSpot = Spot(
-        id: "test-spot",
-        name: "テストスポット",
-        placeholderImageName: "spot_placeholder_1",
-        modelName: "frog.usdz",
-        coordinate: CLLocationCoordinate2D(latitude: 34.69, longitude: 135.21),
-        subtitle: "テスト用のスポット",
-        category: "テスト",
-        description: "これはテスト用のスポットです。"
+
+        id: UUID(),
+        name: "神戸ポートタワー",
+        subtitle: "神戸のシンボル",
+        description: "神戸港を見渡せる展望タワーです",
+        address: "兵庫県神戸市中央区波止場町5-5",
+        latitude: 34.6829,
+        longitude: 135.1862,
+        radius: 50,
+        category: "観光",
+        pinColor: "#FF0000",
+        imageUrl: "https://example.com/port-tower.jpg",
+        arModelId: nil,
+        isActive: true,
+        createdByUser: nil,
+        createdAt: Date(),
+        updatedAt: nil,
+        deletedAt: nil
+
     )
+    
+    static let testSpots: [Spot] = [
+        testSpot,
+        Spot(
+            id: UUID(),
+            name: "メリケンパーク",
+            subtitle: "海辺の公園",
+            description: "神戸港に面した美しい公園",
+            address: "兵庫県神戸市中央区波止場町2-2",
+            latitude: 34.6825,
+            longitude: 135.1870,
+            radius: 100,
+            category: "公園",
+            pinColor: "#0000FF",
+            imageUrl: nil,
+            arModelId: nil,
+            isActive: true,
+            createdByUser: nil,
+            createdAt: Date(),
+            updatedAt: nil,
+            deletedAt: nil
+        ),
+        Spot(
+            id: UUID(),
+            name: "南京町",
+            subtitle: "中華街",
+            description: "日本三大中華街のひとつ",
+            address: "兵庫県神戸市中央区栄町通",
+            latitude: 34.6887,
+            longitude: 135.1915,
+            radius: 80,
+            category: "飲食",
+            pinColor: "#FFFF00",
+            imageUrl: nil,
+            arModelId: nil,
+            isActive: true,
+            createdByUser: nil,
+            createdAt: Date(),
+            updatedAt: nil,
+            deletedAt: nil
+        )
+    ]
 }
 #endif

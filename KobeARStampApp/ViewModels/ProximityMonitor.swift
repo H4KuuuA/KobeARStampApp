@@ -129,7 +129,7 @@ class ProximityMonitor: ObservableObject {
             type: .pinProximity,
             title: spot.name,
             message: "スポットに到着しました!ARスタンプを獲得できます",
-            relatedPinID: spot.id,
+            relatedPinID: spot.id.uuidString,
             metadata: [
                 "latitude": String(spot.coordinate.latitude),
                 "longitude": String(spot.coordinate.longitude)
@@ -160,7 +160,7 @@ class ProximityMonitor: ObservableObject {
             type: .pinProximity,
             title: newSpot.name,
             message: "スポットに到着しました!ARスタンプを獲得できます",
-            relatedPinID: newSpot.id
+            relatedPinID: newSpot.id.uuidString
         )
         Task { @MainActor in
             notificationManager.addNotification(notification)
