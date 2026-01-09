@@ -274,17 +274,23 @@ struct SpotDetailSheetView: View {
                     .foregroundColor(.primary)
             }
             
+
             // ⚠️ coordinate は必ず存在するので Optional unwrap 不要
+
             VStack(alignment: .leading, spacing: 12) {
                 InfoRow(
                     icon: "globe.asia.australia",
                     title: "緯度, 経度",
+
                     value: String(format: "%.6f, %.6f", spot.coordinate.latitude, spot.coordinate.longitude),
+
                     iconColor: .blue
                 )
             }
 
+
             // 地図で開くボタン
+
             Button(action: {
                 openInMaps()
             }) {
@@ -323,7 +329,9 @@ struct SpotDetailSheetView: View {
     
     // MARK: - Helper Functions
     private func openInMaps() {
+
         // ⚠️ coordinate は必ず存在するので Optional unwrap 不要
+
         let coordinate = spot.coordinate
         let url = URL(string: "http://maps.apple.com/?ll=\(coordinate.latitude),\(coordinate.longitude)&q=\(spot.name)")!
         if UIApplication.shared.canOpenURL(url) {

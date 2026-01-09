@@ -285,6 +285,7 @@ struct StampCardDetailView: View {
     }
 }
 
+
 // MARK: - Preview
 #Preview {
     @Previewable @Namespace var animation
@@ -315,3 +316,4 @@ struct StampCardDetailView: View {
         spots: [previewSpot]
     )
 }
+

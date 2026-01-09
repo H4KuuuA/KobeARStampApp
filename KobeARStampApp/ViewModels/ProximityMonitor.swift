@@ -280,3 +280,4 @@ extension ProximityDetector {
         return .inside(nearestSpot.spot)
     }
 }
+

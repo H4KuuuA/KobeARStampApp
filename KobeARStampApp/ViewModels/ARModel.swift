@@ -103,7 +103,9 @@ struct ARModel: Identifiable, Codable, Equatable, Hashable {
 }
 
 
+
 // MARK: - Debug Extension
+
 
 #if DEBUG
 extension ARModel {
@@ -149,4 +151,6 @@ extension ARModel {
         )
     ]
 }
+
 #endif
+

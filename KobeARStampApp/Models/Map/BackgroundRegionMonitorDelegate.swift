@@ -78,7 +78,9 @@ final class BackgroundRegionMonitor: NSObject, ObservableObject {
         
         // 各スポットに対してリージョンを設定
         for spot in spots {
+
             // ⚠️ coordinate は必ず存在するので Optional unwrap 不要
+
             let coordinate = spot.coordinate
             
             // ⚠️ identifier は UUID の文字列表現を使用
@@ -117,7 +119,9 @@ final class BackgroundRegionMonitor: NSObject, ObservableObject {
                 continue
             }
             
+
             // ⚠️ coordinate は必ず存在するので Optional unwrap 不要
+
             let coordinate = spot.coordinate
             
             let spotLocation = CLLocation(

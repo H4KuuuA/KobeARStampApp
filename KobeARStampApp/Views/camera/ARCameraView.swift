@@ -6,7 +6,8 @@
 //
 
 import SwiftUI
-import Combine
+import Combine // Combineフレームワークをインポート
+import CoreLocation
 
 // 写真データを複数のViewで共有・監視するためのクラス
 class PhotoCollection: ObservableObject {
@@ -69,16 +70,16 @@ struct ARCameraView: View {
             VStack {
                 topControls()
                 
-                // デバッグ表示（開発時のみ）
-                #if DEBUG
-                Text(locationManager.getStatusString())
-                    .font(.caption)
-                    .foregroundColor(.white)
-                    .padding(8)
-                    .background(Color.black.opacity(0.5))
-                    .cornerRadius(8)
-                    .padding(.top, 8)
-                #endif
+//                // デバッグ表示（開発時のみ）
+//                #if DEBUG
+//                Text(locationManager.getStatusString())
+//                    .font(.caption)
+//                    .foregroundColor(.white)
+//                    .padding(8)
+//                    .background(Color.black.opacity(0.5))
+//                    .cornerRadius(8)
+//                    .padding(.top, 8)
+//                #endif
                 
                 Spacer()
                 
@@ -104,7 +105,7 @@ struct ARCameraView: View {
             print("📍 初期位置状態: \(locationManager.getStatusString())")
             print("📊 スタンプ管理状況: \(stampManager.acquiredStampCount)/\(stampManager.totalSpotCount)")
         }
-        .onChange(of: locationManager.currentNearestSpot) { oldValue, newValue in
+        .onChange(of: locationManager.currentNearestSpot) { newValue in
             // 最寄りスポットが変化した時
             if let spot = newValue {
                 print("🎯 最寄りスポット変更: \(spot.name)")
@@ -114,7 +115,7 @@ struct ARCameraView: View {
                 print("❌ 最寄りスポットなし")
             }
         }
-        .onChange(of: locationManager.isWithinCaptureRange) { oldValue, newValue in
+        .onChange(of: locationManager.isWithinCaptureRange) { newValue in
             // 撮影可能状態が変化した時
             print("🚦 撮影可能状態変更: \(newValue ? "可能" : "不可")")
         }
@@ -138,9 +139,20 @@ struct ARCameraView: View {
         }
         
         .sheet(isPresented: $showPhotoSelectionSheet) {
-            PhotoSelectionView(assets: $selectableAssets, isPresented: $showPhotoSelectionSheet) { selectedImage in
-                handlePhotoSelection(selectedImage)
-            }
+            PhotoSelectionView(
+                assets: selectableAssets,
+                isPresented: $showPhotoSelectionSheet,
+                onPhotoSelected: { selectedImage in
+                    handlePhotoSelection(selectedImage)
+                },
+                onRetake: {
+                    // Dismiss the selection sheet and allow the user to retake
+                    showPhotoSelectionSheet = false
+                    // Optionally clear the last unsuccessful capture attempt if needed
+                    // Keep successful assets list consistent
+                    selectableAssets = successfulAssets
+                }
+            )
         }
         .sheet(isPresented: $showPreviewAndFilterSheet) {
             if let image = finalImage {
@@ -154,7 +166,7 @@ struct ARCameraView: View {
             guard let result = result else { return }
             switch result {
             case .success:
-                self.saveFeedbackMessage = "写真がフォトライブラリに保存されました！"
+                self.saveFeedbackMessage = "写真がフォトライブラリに保存されました!"
             case .failure:
                 self.saveFeedbackMessage = "写真の保存に失敗しました。設定アプリで写真へのアクセスを許可してください。"
             }
@@ -266,7 +278,7 @@ struct ARCameraView: View {
                     HStack(spacing: 6) {
                         Image(systemName: "exclamationmark.triangle")
                             .foregroundColor(.red)
-                        Text("⚠️ 別のスポット: \(nearestSpot.name)")
+                        Text(" 別のスポット: \(nearestSpot.name)")
                             .font(.headline)
                     }
                     Text("このスポットではスタンプを取得できません")
@@ -340,28 +352,19 @@ struct ARCameraView: View {
                 
                 Spacer()
                 
-                Button(action: {}) {
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                        .font(.title2)
-                        .foregroundColor(.white)
-                }
-                .frame(width: 60)
+                Color.clear
+                    .frame(width: 60)
             }
             .padding(.horizontal, 30)
-            .padding(.bottom, 20)
-
-            HStack(spacing: 20) {
-                Button(CaptureMode.video.rawValue) { selectedMode = .video }
-                    .foregroundColor(selectedMode == .video ? .cyan : .white)
-                Button(CaptureMode.photo.rawValue) { selectedMode = .photo }
-                    .foregroundColor(selectedMode == .photo ? .cyan : .white)
-            }
-            .font(.headline)
+            .padding(.bottom, 6)
+            .padding(.top, 10)
+            .background(Color.black.opacity(0.3))
+            .offset(y:20)
         }
-        .padding(.top, 20)
-        .padding(.bottom, 30)
+        .padding(.top, 80)
+        .padding(.bottom, 10)
         .frame(maxWidth: .infinity)
-        .background(Color.black.opacity(0.3))
+        
     }
     
     // 使い方ガイド
@@ -393,6 +396,7 @@ struct ARCameraView: View {
 }
 
 #Preview {
+
     let previewSpot = Spot.testSpot
     
     ARCameraView(

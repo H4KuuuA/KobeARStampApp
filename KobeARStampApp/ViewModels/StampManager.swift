@@ -15,6 +15,7 @@ class StampManager: ObservableObject {
     static let shared = StampManager()
     
     // MARK: - Properties
+
     
     /// スポットのリスト(DBから取得)
     @Published var allSpots: [Spot] = []

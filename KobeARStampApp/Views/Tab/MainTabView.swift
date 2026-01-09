@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import CoreLocation
 
 struct MainTabView: View {
     // MARK: - Properties
@@ -172,8 +173,10 @@ struct MainTabView: View {
         }
         .padding(.bottom, 23)
         .fullScreenCover(isPresented: $showARCameraView) {
+
             // ⚠️ testSpot を使用（UUID対応済み）
             let previewSpot = Spot.testSpot
+
             
             ARCameraView(spot: previewSpot,
                          activeTab: .constant(.home),
@@ -254,3 +257,4 @@ struct MainTabView: View {
 #Preview {
     MainTabView()
 }
+

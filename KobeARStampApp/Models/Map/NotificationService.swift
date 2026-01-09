@@ -87,8 +87,10 @@ final class NotificationService {
         content.userInfo = [
             "spotId": spot.id.uuidString,
             "spotName": spot.name,
+
             "latitude": coordinate.latitude,
             "longitude": coordinate.longitude,
+
             "distance": distance,
             "accuracy": accuracy
         ]

@@ -6,7 +6,9 @@
 //
 
 import SwiftUI
+import Foundation
 import CoreLocation
+/// A data structure representing a single AR spot.
 
 /// スタンプラリーのスポット情報（DB連携版）
 /// DBの spots テーブルに完全対応
@@ -15,6 +17,7 @@ struct Spot: Identifiable, Codable, Equatable, Hashable {
     
     let id: UUID
     let name: String
+
     let subtitle: String?
     let description: String
     let address: String
@@ -48,6 +51,7 @@ struct Spot: Identifiable, Codable, Equatable, Hashable {
         case "スポーツ": return "spot_placeholder_3"
         default: return "spot_placeholder_default"
         }
+
     }
     
     /// ARモデルファイル名（ローカルアセット用）
@@ -104,6 +108,7 @@ struct Spot: Identifiable, Codable, Equatable, Hashable {
         case deletedAt = "deleted_at"
     }
     
+
     // MARK: - Equatable & Hashable
     
     func hash(into hasher: inout Hasher) {
@@ -112,7 +117,9 @@ struct Spot: Identifiable, Codable, Equatable, Hashable {
     
     static func == (lhs: Spot, rhs: Spot) -> Bool {
         lhs.id == rhs.id
+
     }
+
 }
 
 
@@ -122,6 +129,7 @@ struct Spot: Identifiable, Codable, Equatable, Hashable {
 extension Spot {
     /// テスト用のサンプルスポット
     static let testSpot = Spot(
+
         id: UUID(),
         name: "神戸ポートタワー",
         subtitle: "神戸のシンボル",
@@ -139,6 +147,7 @@ extension Spot {
         createdAt: Date(),
         updatedAt: nil,
         deletedAt: nil
+
     )
     
     static let testSpots: [Spot] = [

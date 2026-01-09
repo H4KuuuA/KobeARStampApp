@@ -13,6 +13,7 @@ import Combine
 struct ARViewContainer: UIViewRepresentable {
     
     let spot: Spot
+    let arModel: ARModel? = nil
     
     @Binding var scale: Float
     let snapshotTrigger: PassthroughSubject<Void, Never>
@@ -24,6 +25,13 @@ struct ARViewContainer: UIViewRepresentable {
         
         let config = ARWorldTrackingConfiguration()
         config.planeDetection = .horizontal
+        
+        // MARK: - People Occlusion Implementation
+        // デバイスがピープルオクルージョン（深度付き人物セグメンテーション）をサポートしているか確認し、有効化します
+        if ARWorldTrackingConfiguration.supportsFrameSemantics(.personSegmentationWithDepth) {
+            config.frameSemantics.insert(.personSegmentationWithDepth)
+        }
+        
         arView.session.run(config)
         
         let tapGesture = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleTap(_:)))
@@ -39,7 +47,7 @@ struct ARViewContainer: UIViewRepresentable {
     }
     
     func makeCoordinator() -> Coordinator {
-        Coordinator(spot: spot, snapshotTrigger: snapshotTrigger, photoCollection: photoCollection)
+        Coordinator(spot: spot, arModel: arModel, snapshotTrigger: snapshotTrigger, photoCollection: photoCollection)
     }
 
     // MARK: - Coordinator
@@ -48,17 +56,20 @@ struct ARViewContainer: UIViewRepresentable {
         weak var arView: ARView?
         var cancellables = Set<AnyCancellable>()
         private var lastPlacedAnchor: AnchorEntity?
+        private var loadTask: Task<Void, Never>?
         
         let spot: Spot
+        let arModel: ARModel?
         
         let snapshotTrigger: PassthroughSubject<Void, Never>
         let photoCollection: PhotoCollection
 
-        init(spot: Spot, snapshotTrigger: PassthroughSubject<Void, Never>, photoCollection: PhotoCollection) {
-                    self.spot = spot
-                    self.snapshotTrigger = snapshotTrigger
-                    self.photoCollection = photoCollection
-                }
+        init(spot: Spot, arModel: ARModel?, snapshotTrigger: PassthroughSubject<Void, Never>, photoCollection: PhotoCollection) {
+            self.spot = spot
+            self.arModel = arModel
+            self.snapshotTrigger = snapshotTrigger
+            self.photoCollection = photoCollection
+        }
         
         @objc func handleTap(_ recognizer: UITapGestureRecognizer) {
             guard let arView = arView,
@@ -66,18 +77,97 @@ struct ARViewContainer: UIViewRepresentable {
                   let firstResult = arView.session.raycast(query).first else {
                 return
             }
-            
+
+            // 1. Cancel previous loading task if any
+            loadTask?.cancel()
+
+            // 2. Remove previous anchor (clear previous stamp)
+            if let oldAnchor = lastPlacedAnchor {
+                arView.scene.removeAnchor(oldAnchor)
+            }
+
+            // 3. Create and add a new anchor
             let anchor = AnchorEntity(world: firstResult.worldTransform)
-            
-            // NOTE: This is a placeholder model. Replace with your actual model loading logic.
-            let box = MeshResource.generateBox(size: 0.1)
-            let material = SimpleMaterial(color: .systemPink, isMetallic: true)
-            let modelEntity = ModelEntity(mesh: box, materials: [material])
-            
-            modelEntity.generateCollisionShapes(recursive: true)
-            anchor.addChild(modelEntity)
             arView.scene.addAnchor(anchor)
             lastPlacedAnchor = anchor
+
+            // Ghost while loading
+            let ghostSphere = try? MeshResource.generateSphere(radius: 0.05)
+            let ghostMaterial = UnlitMaterial(color: UIColor.white.withAlphaComponent(0.3))
+            let ghostEntity = ModelEntity(mesh: ghostSphere ?? MeshResource.generateBox(size: 0.1), materials: [ghostMaterial])
+            anchor.addChild(ghostEntity)
+
+            // 4. Start a new cancellable loading task and keep a reference
+            loadTask = Task { [weak self] in
+                guard let self = self else { return }
+
+                if Task.isCancelled { return }
+
+                do {
+                    // Resolve model URL either from ARModel or fallback to Spot.modelName (URL string)
+                    let sourceURL: URL
+                    if let arModel = self.arModel {
+                        sourceURL = try arModel.resolvedURL()
+                    } else {
+                        guard let url = URL(string: self.spot.modelName) else { throw URLError(.badURL) }
+                        sourceURL = url
+                    }
+
+                    // Download or copy to a local file URL for stable loading
+                    let data: Data
+                    if sourceURL.isFileURL {
+                        data = try Data(contentsOf: sourceURL)
+                    } else {
+                        let (downloaded, _) = try await URLSession.shared.data(from: sourceURL)
+                        data = downloaded
+                    }
+                    if Task.isCancelled { return }
+
+                    // Write to caches for stable local loading
+                    let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
+                    let fileURL = caches.appendingPathComponent("ar_usdz_\(self.spot.id).usdz")
+                    try? FileManager.default.removeItem(at: fileURL)
+                    try data.write(to: fileURL)
+
+                    // Load ModelEntity or Entity from local file depending on arModel kind
+                    let loadedEntity: Entity
+                    if let kind = self.arModel?.resolvedKind {
+                        switch kind {
+                        case .usdz:
+                            loadedEntity = try await ModelEntity.load(contentsOf: fileURL)
+                        case .reality:
+                            loadedEntity = try await Entity.load(contentsOf: fileURL)
+                        case .other:
+                            // Fallback: try as USDZ first
+                            loadedEntity = try await ModelEntity.load(contentsOf: fileURL)
+                        }
+                    } else {
+                        // Fallback to USDZ behavior for Spot-based loading
+                        loadedEntity = try await ModelEntity.load(contentsOf: fileURL)
+                    }
+                    loadedEntity.generateCollisionShapes(recursive: true)
+                    if Task.isCancelled { return }
+
+                    // Update UI only if this anchor is still the latest
+                    await MainActor.run {
+                        guard self.lastPlacedAnchor == anchor else { return }
+                        ghostEntity.removeFromParent()
+                        anchor.addChild(loadedEntity)
+                    }
+                } catch {
+                    if Task.isCancelled { return }
+                    print("Model loading failed: \(error)")
+                    await MainActor.run {
+                        guard self.lastPlacedAnchor == anchor else { return }
+                        ghostEntity.removeFromParent()
+                        let box = MeshResource.generateBox(size: 0.1)
+                        let material = SimpleMaterial(color: .systemPink, isMetallic: true)
+                        let fallback = ModelEntity(mesh: box, materials: [material])
+                        fallback.generateCollisionShapes(recursive: true)
+                        anchor.addChild(fallback)
+                    }
+                }
+            }
         }
         
         func subscribeToActionStream() {
@@ -113,8 +203,7 @@ struct ARViewContainer: UIViewRepresentable {
             }
             
             if arView.bounds.contains(projectedPoint) {
-                return .success(())
-            } else {
+                return .success(())           } else {
                 return .failure(.modelNotInView)
             }
         }
@@ -124,3 +213,4 @@ struct ARViewContainer: UIViewRepresentable {
         }
     }
 }
+
