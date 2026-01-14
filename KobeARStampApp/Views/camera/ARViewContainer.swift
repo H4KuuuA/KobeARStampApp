@@ -13,7 +13,7 @@ import Combine
 struct ARViewContainer: UIViewRepresentable {
     
     let spot: Spot
-    let arModel: ARModel? = nil
+    let arModel: ARModel?
     
     @Binding var scale: Float
     let snapshotTrigger: PassthroughSubject<Void, Never>
@@ -104,22 +104,32 @@ struct ARViewContainer: UIViewRepresentable {
                 if Task.isCancelled { return }
 
                 do {
-                    // Resolve model URL either from ARModel or fallback to Spot.modelName (URL string)
-                    let sourceURL: URL
-                    if let arModel = self.arModel {
-                        sourceURL = try arModel.resolvedURL()
+                    // Prefer local file if arModelId is available and synced via ARModelManager
+                    var data: Data
+                    if let modelId = self.spot.arModelId, await ARModelManager.shared.modelExists(modelId: modelId) {
+                        let localURL = await ARModelManager.shared.localURL(for: modelId)
+                        print("📦 Loading local USDZ from: \(localURL.path)")
+                        data = try Data(contentsOf: localURL)
                     } else {
-                        guard let url = URL(string: self.spot.modelName) else { throw URLError(.badURL) }
-                        sourceURL = url
-                    }
-
-                    // Download or copy to a local file URL for stable loading
-                    let data: Data
-                    if sourceURL.isFileURL {
-                        data = try Data(contentsOf: sourceURL)
-                    } else {
-                        let (downloaded, _) = try await URLSession.shared.data(from: sourceURL)
-                        data = downloaded
+                        // Otherwise resolve from ARModel (remote URL). This path expects a valid HTTPS URL.
+                        let sourceURL: URL
+                        if let arModel = self.arModel, let url = arModel.fileURL {
+                            sourceURL = url
+                        } else if let arModelId = self.spot.arModelId {
+                            // If we only have the ID but no ARModel object, fail explicitly for now
+                            throw URLError(.fileDoesNotExist)
+                        } else {
+                            // No AR model available for this spot
+                            throw URLError(.badURL)
+                        }
+                        print("🌐 Downloading USDZ from: \(sourceURL.absoluteString)")
+                        if sourceURL.isFileURL {
+                            data = try Data(contentsOf: sourceURL)
+                        } else {
+                            let (downloaded, response) = try await URLSession.shared.data(from: sourceURL)
+                            if let http = response as? HTTPURLResponse { print("HTTP: \(http.statusCode), bytes: \(downloaded.count)") }
+                            data = downloaded
+                        }
                     }
                     if Task.isCancelled { return }
 
@@ -129,22 +139,8 @@ struct ARViewContainer: UIViewRepresentable {
                     try? FileManager.default.removeItem(at: fileURL)
                     try data.write(to: fileURL)
 
-                    // Load ModelEntity or Entity from local file depending on arModel kind
-                    let loadedEntity: Entity
-                    if let kind = self.arModel?.resolvedKind {
-                        switch kind {
-                        case .usdz:
-                            loadedEntity = try await ModelEntity.load(contentsOf: fileURL)
-                        case .reality:
-                            loadedEntity = try await Entity.load(contentsOf: fileURL)
-                        case .other:
-                            // Fallback: try as USDZ first
-                            loadedEntity = try await ModelEntity.load(contentsOf: fileURL)
-                        }
-                    } else {
-                        // Fallback to USDZ behavior for Spot-based loading
-                        loadedEntity = try await ModelEntity.load(contentsOf: fileURL)
-                    }
+                    // Load USDZ ModelEntity from local caches file
+                    let loadedEntity = try await ModelEntity.load(contentsOf: fileURL)
                     loadedEntity.generateCollisionShapes(recursive: true)
                     if Task.isCancelled { return }
 
@@ -156,7 +152,7 @@ struct ARViewContainer: UIViewRepresentable {
                     }
                 } catch {
                     if Task.isCancelled { return }
-                    print("Model loading failed: \(error)")
+                    print("❌ Model loading failed: \(error)")
                     await MainActor.run {
                         guard self.lastPlacedAnchor == anchor else { return }
                         ghostEntity.removeFromParent()

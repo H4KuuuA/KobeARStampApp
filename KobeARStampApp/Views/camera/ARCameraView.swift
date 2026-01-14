@@ -17,6 +17,7 @@ class PhotoCollection: ObservableObject {
 struct ARCameraView: View {
     @StateObject private var photoCollection = PhotoCollection()
     @StateObject private var locationManager = LocationAwareCaptureManager()
+    @State private var arModel: ARModel? = nil
     
     let spot: Spot
     
@@ -60,6 +61,7 @@ struct ARCameraView: View {
             
             ARViewContainer(
                 spot: spot,
+                arModel: arModel,
                 scale: $arScale,
                 snapshotTrigger: snapshotTrigger,
                 photoCollection: photoCollection
@@ -104,6 +106,22 @@ struct ARCameraView: View {
             // 初期状態をログ出力
             print("📍 初期位置状態: \(locationManager.getStatusString())")
             print("📊 スタンプ管理状況: \(stampManager.acquiredStampCount)/\(stampManager.totalSpotCount)")
+            
+            // Fetch ARModel for this spot if available
+            Task {
+                if let _ = spot.arModelId {
+                    do {
+                        // Try to fetch ARModel from repository
+                        let model = try await DataRepository.shared.fetchArModel(for: spot)
+                        await MainActor.run { self.arModel = model }
+                        print("✅ ARModel fetched: \(model?.modelName)")
+                    } catch {
+                        print("⚠️ Failed to fetch ARModel for spot: \(error)")
+                    }
+                } else {
+                    print("ℹ️ No ARModel linked to this spot")
+                }
+            }
         }
         .onChange(of: locationManager.currentNearestSpot) { newValue in
             // 最寄りスポットが変化した時
