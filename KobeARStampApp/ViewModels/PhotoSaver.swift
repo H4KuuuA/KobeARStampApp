@@ -6,31 +6,56 @@
 //
 
 import SwiftUI
-import Photos // Photosフレームワークをインポート
+import Photos
 
-/// UIImageをフォトライブラリに保存するためのヘルパークラス
+/// UIImageをフォトライブラリとアプリディレクトリに保存するためのヘルパークラス
 class PhotoSaver: NSObject, ObservableObject {
     
     /// 保存結果をViewに伝えるためのPublishedプロパティ
     @Published var saveResult: Result<Void, Error>?
     
-    /// 画像の保存を実行する
+    /// 画像をフォトライブラリとアプリディレクトリの両方に保存する
+    /// - Parameters:
+    ///   - image: 保存したいUIImage
+    ///   - spot: 関連するSpot（スタンプの保存先を決定するため）
+    @MainActor func saveImage(_ image: UIImage, for spot: Spot) {
+        Task {
+            // 位置情報を取得（オプション）
+            let latitude = LocationManager.shared.latitude
+            let longitude = LocationManager.shared.longitude
+            let currentEvent = StampManager.shared.currentEvent
+            
+            // Supabaseベースで保存
+            await StampManager.shared.addStamp(
+                image: image,
+                for: spot,
+                event: currentEvent,
+                latitude: latitude,
+                longitude: longitude
+            )
+            
+            // フォトライブラリにも保存
+            saveToPhotoLibrary(image)
+        }
+    }
+    
+    /// フォトライブラリのみに保存（既存の機能を保持）
     /// - Parameter image: 保存したいUIImage
     func saveImage(_ image: UIImage) {
-        // 保存処理が完了するまで自身を強参照で保持する
-        // (コールバックが呼ばれる前にインスタンスが破棄されるのを防ぐため)
+        saveToPhotoLibrary(image)
+    }
+    
+    /// フォトライブラリに画像を保存する内部メソッド
+    private func saveToPhotoLibrary(_ image: UIImage) {
         let strongSelf: PhotoSaver? = self
         
         UIImageWriteToSavedPhotosAlbum(image, self, #selector(image(_:didFinishSavingWithError:contextInfo:)), nil)
         
-        // 実際にはコールバック内でstrongSelfをnilにするが、
-        // このクラスは@StateObjectで使われる想定なので、簡略化しても動作する
         _ = strongSelf // 警告防止
     }
     
     /// UIImageWriteToSavedPhotosAlbumからのコールバック
     @objc func image(_ image: UIImage, didFinishSavingWithError error: Error?, contextInfo: UnsafeRawPointer) {
-        // メインスレッドで結果をViewに通知する
         DispatchQueue.main.async {
             if let error = error {
                 print("写真の保存に失敗: \(error.localizedDescription)")

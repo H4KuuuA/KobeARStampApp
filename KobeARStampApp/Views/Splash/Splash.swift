@@ -24,7 +24,7 @@ struct SplashView: View {
                 Image("Splash")
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: 186, height: 186)
+                    .frame(width: 250, height: 250)
                     .scaleEffect(logoScale)
                     .opacity(logoOpacity)
                     .offset(x: 15)

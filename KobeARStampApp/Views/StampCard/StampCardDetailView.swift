@@ -2,7 +2,7 @@
 //  StampCardDetailView.swift
 //  KobeARStampApp
 //
-//  DB連携対応版
+//  Supabase対応版
 //
 
 import SwiftUI
@@ -12,7 +12,7 @@ struct StampCardDetailView: View {
     var animation: Namespace.ID
     @ObservedObject var stampManager = StampManager.shared
     
-    // 表示するスポットのリスト（親Viewから渡される）
+    // 表示するスポットのリスト(親Viewから渡される)
     let spots: [Spot]
     
     var isScrollEnabled: Bool = true
@@ -21,6 +21,9 @@ struct StampCardDetailView: View {
     @State private var hidesThumbnail: Bool = false
     @State private var scrollID: UUID?
     @State private var expandedSpotID: UUID? = nil
+    
+    // Supabaseから取得した訪問日時
+    @State private var visitedDates: [UUID: Date] = [:]
     
     var body: some View {
         GeometryReader { geometry in
@@ -42,6 +45,65 @@ struct StampCardDetailView: View {
         }
         .ignoresSafeArea()
         .navigationTransition(.zoom(sourceID: spot.id.uuidString, in: animation))
+        .onAppear {
+            // スクロール位置を即座に設定
+            if isScrollEnabled && scrollID == nil {
+                scrollID = spot.id
+            }
+        }
+        .task {
+            // 訪問日時を取得
+            await loadVisitedDates()
+        }
+    }
+    
+    // MARK: - Data Loading
+    
+    /// Supabaseから訪問日時を取得
+    private func loadVisitedDates() async {
+        guard AuthManager.shared.isAuthenticated else { return }
+        
+        do {
+            let userId = try await SupabaseManager.shared.client.auth.session.user.id
+            
+            // 表示中のスポットIDリストを取得
+            let spotIds = spots.map { $0.id.uuidString }
+            
+            let response = try await SupabaseManager.shared.client
+                .from("spot_visit")
+                .select("spot_id, visited_at")
+                .eq("user_id", value: userId.uuidString)
+                .in("spot_id", values: spotIds)
+                .order("visited_at", ascending: false)
+                .execute()
+            
+            struct VisitRecord: Codable {
+                let spot_id: String
+                let visited_at: String
+            }
+            
+            let decoder = JSONDecoder()
+            let records = try decoder.decode([VisitRecord].self, from: response.data)
+            
+            // 各スポットの最新訪問日時を保存
+            var dates: [UUID: Date] = [:]
+            let isoFormatter = ISO8601DateFormatter()
+            
+            for record in records {
+                if let spotId = UUID(uuidString: record.spot_id),
+                   let date = isoFormatter.date(from: record.visited_at) {
+                    // 既に登録されていない、または新しい日時の場合のみ更新
+                    if dates[spotId] == nil || date > dates[spotId]! {
+                        dates[spotId] = date
+                    }
+                }
+            }
+            
+            visitedDates = dates
+            
+        } catch {
+            print("❌ 訪問日時の取得エラー: \(error)")
+        }
     }
     
     // MARK: - Main Scroll View
@@ -166,9 +228,9 @@ struct StampCardDetailView: View {
                     subtitleView(subtitle: subtitle)
                 }
                 
-                // スタンプ取得情報の表示 (DictionaryのキーはUUID)
-                if let stamp = stampManager.acquiredStamps[spot.id] {
-                    dateView(date: stamp.visitedAt)
+                // スタンプ取得情報の表示
+                if let visitedDate = visitedDates[spot.id] {
+                    dateView(date: visitedDate)
                 }
                 
                 // description が空文字でなければ表示
@@ -276,9 +338,6 @@ struct StampCardDetailView: View {
         .frame(width: size.width, height: size.height)
         .clipShape(.rect(cornerRadius: 15))
         .task {
-            if isScrollEnabled {
-                scrollID = spot.id
-            }
             try? await Task.sleep(for: .seconds(0.15))
             hidesThumbnail = true
         }
@@ -316,4 +375,3 @@ struct StampCardDetailView: View {
         spots: [previewSpot]
     )
 }
-

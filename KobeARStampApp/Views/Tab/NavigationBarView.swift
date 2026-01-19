@@ -26,8 +26,8 @@ struct CustomNavigationBar: View {
                 Image("ar_stamp_rally_logo")
                     .resizable()
                     .scaledToFit()
-                    .frame(height: 36)
-                    .padding(.leading, 32)
+                    .frame(height: 32)
+                    .padding(.leading, 2)
                 
                 Spacer()
                 

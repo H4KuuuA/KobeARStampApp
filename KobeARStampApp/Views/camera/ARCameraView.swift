@@ -271,11 +271,8 @@ struct ARCameraView: View {
             return
         }
         
-        // 1. スタンプカード用に内部保存
-        stampManager.addStamp(image: selectedImage, for: spot)
-        
-        // 2. デバイスのフォトライブラリに保存
-        photoSaver.saveImage(selectedImage)
+        // アプリディレクトリ + フォトライブラリの両方に保存
+        photoSaver.saveImage(selectedImage, for: spot)
     }
 
     // MARK: - UI Components

@@ -67,6 +67,7 @@ struct LoadingView: View {
                         .resizable()
                         .scaledToFit()
                         .frame(height: 90)
+                        .padding(.leading, 42)
                     
                 }
                 .padding(.top, 60)
