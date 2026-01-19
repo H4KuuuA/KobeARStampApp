@@ -124,6 +124,12 @@ struct MapView: View {
                     }
                 }
             }
+            Task {
+                    await stampManager.fetchCurrentEvent()
+                    if let currentEvent = stampManager.currentEvent {
+                        await stampManager.fetchSpots(for: currentEvent)
+                    }
+                }
         }
         .onReceive(NotificationCenter.default.publisher(for: .spotDeselected)) { _ in
             withAnimation {

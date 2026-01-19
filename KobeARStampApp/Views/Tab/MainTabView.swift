@@ -1,19 +1,13 @@
 //
-//  MainTabView.swift
-//  KobeARStampApp
-//
-//  Created by 大江悠都 on 2025/08/01.
+//  MainTabView.swift (修正版)
+//  ARCameraButton部分を修正
 //
 
 import SwiftUI
 import CoreLocation
 
 struct MainTabView: View {
-    // MARK: - Properties
     @State private var activeTab: TabModel = .home
-    
-    // 下のタブバーに表示する項目だけを定義
-    // (.settings はTabModelに含まれますが、下のバーには表示したくないため除外しています)
     @State private var allTabs: [AnimatedTabModel] = [
         .home,
         .stamp
@@ -25,7 +19,11 @@ struct MainTabView: View {
     @State private var showNotification = false
     @State var showARCameraView = false
     
-    // MARK: - Body
+    // ✅ 追加: LocationManagerとProximityDetector
+    @StateObject private var locationManager = LocationManager.shared
+    private let proximityDetector = ProximityDetector()
+    @ObservedObject private var stampManager = StampManager.shared
+    
     var body: some View {
         AnimationSideBar(
             rotatesWhenExpands: true,
@@ -35,7 +33,6 @@ struct MainTabView: View {
             showMenu: $showMenu
         ) { safeArea in
             VStack(spacing: 0) {
-                // ナビゲーションバー
                 CustomNavigationBar(
                     onMenuTap: {
                         withAnimation(.snappy(duration: 0.3, extraBounce: 0)) {
@@ -51,9 +48,7 @@ struct MainTabView: View {
                 .background(Color.white)
                 .zIndex(100)
                 
-                // メインコンテンツエリア
                 ZStack {
-                    // タブに応じた画面の切り替え
                     Group {
                         switch activeTab {
                         case .home:
@@ -65,11 +60,7 @@ struct MainTabView: View {
                         }
                     }
                     
-                    // 下部のタブバーとARボタン
-                    // 設定画面の時も表示したままで良ければこのまま。
-                    // 隠したい場合は `if activeTab != .settings` で囲ってください。
                     VStack(spacing: 0) {
-                        // ホーム画面の時だけデモボタンなどを表示する例
                         if activeTab == .home {
                             StampDemoView()
                         }
@@ -106,7 +97,6 @@ struct MainTabView: View {
     @ViewBuilder
     func CustomTabBar() -> some View {
         ZStack {
-            // Rectangleを背景として配置
             Rectangle()
                 .fill(Color.white)
                 .offset(y: 16)
@@ -125,7 +115,6 @@ struct MainTabView: View {
                             .textScale(.secondary)
                     }
                     .frame(maxWidth: .infinity)
-                    // activeTabと一致する時だけ色を変える（設定画面表示中はどれもグレーになる）
                     .foregroundStyle(activeTab == tab ? Color("DarkBlue") : Color.gray.opacity(0.8))
                     .padding(.top, 15)
                     .padding(.bottom, 10)
@@ -148,6 +137,8 @@ struct MainTabView: View {
         }
         .frame(height: 48)
     }
+    
+    // MARK: - ✅ 修正: 最寄りスポットを自動選択
     
     @ViewBuilder
     func ARCameraButton() -> some View {
@@ -173,16 +164,45 @@ struct MainTabView: View {
         }
         .padding(.bottom, 23)
         .fullScreenCover(isPresented: $showARCameraView) {
-
-            // ⚠️ testSpot を使用（UUID対応済み）
-            let previewSpot = Spot.testSpot
-
+            // ✅ 修正: 最寄りスポットを動的に選択
+            let targetSpot = getNearestSpot()
             
-            ARCameraView(spot: previewSpot,
-                         activeTab: .constant(.home),
-                         stampManager: StampManager.shared)
+            ARCameraView(
+                spot: targetSpot,
+                activeTab: .constant(.home),
+                stampManager: stampManager
+            )
         }
         .offset(y: 4)
+    }
+    
+    /// ✅ 最寄りスポットを取得（見つからない場合はフォールバック）
+    private func getNearestSpot() -> Spot {
+        // 位置情報が取得できているか確認
+        guard locationManager.latitude != 0.0,
+              locationManager.longitude != 0.0 else {
+            print("⚠️ 位置情報未取得 - フォールバック使用")
+            return stampManager.allSpots.first ?? Spot.testSpot
+        }
+        
+        let currentLocation = CLLocation(
+            latitude: locationManager.latitude,
+            longitude: locationManager.longitude
+        )
+        
+        // ProximityDetectorで最寄りスポットを検索（距離制限なし）
+        let allDistances = proximityDetector.calculateDistances(
+            from: currentLocation,
+            to: stampManager.allSpots
+        )
+        
+        if let nearest = allDistances.min(by: { $0.distance < $1.distance }) {
+            print("✅ 最寄りスポット選択: \(nearest.spot.name) - \(String(format: "%.1fm", nearest.distance))")
+            return nearest.spot
+        } else {
+            print("⚠️ スポットが見つかりません - フォールバック使用")
+            return stampManager.allSpots.first ?? Spot.testSpot
+        }
     }
     
     @ViewBuilder
@@ -193,19 +213,16 @@ struct MainTabView: View {
                 .foregroundColor(Color("DarkBlue"))
                 .padding(.bottom, 10)
             
-            // 1. ホーム
             SideBarButton(.home) {
                 activeTab = .home
                 withAnimation { showMenu = false }
             }
             
-            // 2. スタンプカード
             SideBarButton(.stampRally) {
                 activeTab = .stamp
                 withAnimation { showMenu = false }
             }
             
-            // 3. カメラ
             SideBarButton(.camera) {
                 withAnimation { showMenu = false }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
@@ -213,15 +230,12 @@ struct MainTabView: View {
                 }
             }
             
-            // 4. 通知
             SideBarButton(.notification) {
                 withAnimation { showMenu = false }
                 showNotification = true
             }
             
-            // 5. 設定
             SideBarButton(.settings) {
-                // ここでSettingsViewに切り替える
                 activeTab = .settings
                 withAnimation { showMenu = false }
             }
@@ -257,4 +271,3 @@ struct MainTabView: View {
 #Preview {
     MainTabView()
 }
-

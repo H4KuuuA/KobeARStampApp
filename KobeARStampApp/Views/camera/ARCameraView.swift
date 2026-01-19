@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-import Combine // Combineフレームワークをインポート
+import Combine
 import CoreLocation
 
 // 写真データを複数のViewで共有・監視するためのクラス
@@ -16,7 +16,8 @@ class PhotoCollection: ObservableObject {
 
 struct ARCameraView: View {
     @StateObject private var photoCollection = PhotoCollection()
-    @StateObject private var locationManager = LocationAwareCaptureManager()
+    @StateObject private var locationManager = LocationManager.shared
+    private let proximityDetector = ProximityDetector()
     
     let spot: Spot
     
@@ -40,6 +41,15 @@ struct ARCameraView: View {
     @State private var selectableAssets: [PhotoAsset] = []
     @Environment(\.dismiss) private var dismiss
     
+    // 位置情報の状態管理
+    @State private var distanceToSpot: CLLocationDistance = 0
+    @State private var isWithinRange: Bool = false
+    @State private var cancellables = Set<AnyCancellable>()
+    
+    // ARModel取得用
+    @State private var arModel: ARModel? = nil
+    @State private var isLoadingModel = false
+    
     private let snapshotTrigger = PassthroughSubject<Void, Never>()
     
     // 成功したアセットのみを返す計算プロパティ
@@ -58,8 +68,12 @@ struct ARCameraView: View {
     var body: some View {
         ZStack {
             
+            // ARModelをARViewContainerに渡す（デバッグログ追加）
+            let _ = print("🔄 ARCameraView body評価 - arModel: \(arModel?.modelName ?? "nil")")
+            
             ARViewContainer(
                 spot: spot,
+                arModel: arModel,  // DBから取得したモデルを渡す
                 scale: $arScale,
                 snapshotTrigger: snapshotTrigger,
                 photoCollection: photoCollection
@@ -69,17 +83,6 @@ struct ARCameraView: View {
 
             VStack {
                 topControls()
-                
-//                // デバッグ表示（開発時のみ）
-//                #if DEBUG
-//                Text(locationManager.getStatusString())
-//                    .font(.caption)
-//                    .foregroundColor(.white)
-//                    .padding(8)
-//                    .background(Color.black.opacity(0.5))
-//                    .cornerRadius(8)
-//                    .padding(.top, 8)
-//                #endif
                 
                 Spacer()
                 
@@ -97,27 +100,13 @@ struct ARCameraView: View {
             .foregroundColor(.white)
         }
         .onAppear {
-            // 位置情報の更新を開始（ProximityDetectorを使用）
+            // 位置情報の更新を開始
             print("🎬 ARCameraView: onAppear - スポット: \(spot.name)")
-            locationManager.updateNearestSpot(with: stampManager.allSpots)
+            setupLocationMonitoring()
+            updateDistance()
             
-            // 初期状態をログ出力
-            print("📍 初期位置状態: \(locationManager.getStatusString())")
-            print("📊 スタンプ管理状況: \(stampManager.acquiredStampCount)/\(stampManager.totalSpotCount)")
-        }
-        .onChange(of: locationManager.currentNearestSpot) { newValue in
-            // 最寄りスポットが変化した時
-            if let spot = newValue {
-                print("🎯 最寄りスポット変更: \(spot.name)")
-                print("📏 距離: \(String(format: "%.1fm", locationManager.distanceToSpot))")
-                print("✓ 撮影可能: \(locationManager.isWithinCaptureRange ? "YES" : "NO")")
-            } else {
-                print("❌ 最寄りスポットなし")
-            }
-        }
-        .onChange(of: locationManager.isWithinCaptureRange) { newValue in
-            // 撮影可能状態が変化した時
-            print("🚦 撮影可能状態変更: \(newValue ? "可能" : "不可")")
+            // DBからARModelを取得
+            loadARModel()
         }
         .onChange(of: photoCollection.assets.count) {
             guard let newAsset = photoCollection.assets.last else { return }
@@ -182,12 +171,99 @@ struct ARCameraView: View {
         }
     }
     
+    // MARK: - Location Monitoring
+    
+    /// DBからARModelを取得
+    private func loadARModel() {
+        // spot.arModelIdが存在する場合のみDB取得を試みる
+        guard let arModelId = spot.arModelId else {
+            print("⚠️ スポット \(spot.name) にはarModelIdが設定されていません。デフォルトモデルを使用します。")
+            return
+        }
+        
+        isLoadingModel = true
+        print("🔄 ARModel読み込み開始: ID=\(arModelId)")
+        
+        Task {
+            do {
+                if let fetchedModel = try await DataRepository.shared.fetchArModel(for: spot) {
+                    await MainActor.run {
+                        self.arModel = fetchedModel
+                        self.isLoadingModel = false
+                        print("✅ ARModel取得成功: \(fetchedModel.modelName)")
+                        print("   - ファイルURL: \(fetchedModel.fileUrl)")
+                        print("   - ファイルタイプ: \(fetchedModel.fileType ?? "不明")")
+                        print("   - ファイルサイズ: \(fetchedModel.displayFileSize)")
+                    }
+                } else {
+                    await MainActor.run {
+                        self.isLoadingModel = false
+                        print("⚠️ ARModelが見つかりませんでした。デフォルトモデルを使用します。")
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    self.isLoadingModel = false
+                    print("❌ ARModel取得エラー: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+    
+    private func setupLocationMonitoring() {
+        locationManager.$latitude
+            .combineLatest(locationManager.$longitude)
+            .dropFirst()
+            .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)
+            .sink { [self] _, _ in
+                updateDistance()
+            }
+            .store(in: &cancellables)
+    }
+    
+    /// 現在地からスポットまでの距離を計算
+    private func updateDistance() {
+        guard locationManager.latitude != 0.0, locationManager.longitude != 0.0 else {
+            distanceToSpot = 0
+            isWithinRange = false
+            return
+        }
+        
+        let currentLocation = CLLocation(
+            latitude: locationManager.latitude,
+            longitude: locationManager.longitude
+        )
+        
+        let spotLocation = CLLocation(
+            latitude: spot.latitude,
+            longitude: spot.longitude
+        )
+        
+        distanceToSpot = currentLocation.distance(from: spotLocation)
+        isWithinRange = distanceToSpot <= 25.0
+        
+        print("📍 \(spot.name)まで: \(String(format: "%.1fm", distanceToSpot)) - \(isWithinRange ? "✅圏内" : "❌圏外")")
+    }
+    
+    /// スタンプ取得可能か判定
+    private func canCaptureStamp() -> (canCapture: Bool, message: String) {
+        guard locationManager.latitude != 0.0, locationManager.longitude != 0.0 else {
+            return (false, "位置情報を取得できません")
+        }
+        
+        guard isWithinRange else {
+            let distance = String(format: "%.0f", distanceToSpot)
+            return (false, "\(spot.name)まであと\(distance)mです")
+        }
+        
+        return (true, "スタンプを取得しました！")
+    }
+    
     // MARK: - Photo Selection Handler
     
     private func handlePhotoSelection(_ selectedImage: UIImage) {
-        // ProximityDetectorベースの位置情報チェック
-        // ⚠️ UUID型で判定
-        let validation = locationManager.canCaptureStamp(for: spot.id)
+        // 位置情報チェック
+        let validation = canCaptureStamp()
         
         if !validation.canCapture {
             alertMessage = validation.message
@@ -195,11 +271,8 @@ struct ARCameraView: View {
             return
         }
         
-        // 1. スタンプカード用に内部保存
-        stampManager.addStamp(image: selectedImage, for: spot)
-        
-        // 2. デバイスのフォトライブラリに保存
-        photoSaver.saveImage(selectedImage)
+        // アプリディレクトリ + フォトライブラリの両方に保存
+        photoSaver.saveImage(selectedImage, for: spot)
     }
 
     // MARK: - UI Components
@@ -243,57 +316,42 @@ struct ARCameraView: View {
         .padding(.top, 50)
     }
     
-    // 位置情報オーバーレイ（ProximityDetectorベース）
+    // 位置情報オーバーレイ
     @ViewBuilder
     private func locationInfoOverlay() -> some View {
-        if let nearestSpot = locationManager.currentNearestSpot {
-            VStack(spacing: 8) {
-                // ⚠️ UUID型で比較
-                if locationManager.isWithinCaptureRange && nearestSpot.id == spot.id {
-                    // ✅ 撮影可能エリア内（25m以内）
-                    HStack(spacing: 6) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                        Text("📍 \(nearestSpot.name)")
-                            .font(.headline)
-                    }
-                    Text("撮影可能エリア")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.9))
-                        
-                } else if nearestSpot.id == spot.id {
-                    // ⚠️ 同じスポットだが範囲外
-                    HStack(spacing: 6) {
-                        Image(systemName: "location.circle")
-                            .foregroundColor(.orange)
-                        Text("📍 \(nearestSpot.name)")
-                            .font(.headline)
-                    }
-                    Text("もう少し近づいてください (\(String(format: "%.0fm", locationManager.distanceToSpot)))")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.9))
-                        
-                } else {
-                    // ❌ 別のスポットが近い
-                    HStack(spacing: 6) {
-                        Image(systemName: "exclamationmark.triangle")
-                            .foregroundColor(.red)
-                        Text(" 別のスポット: \(nearestSpot.name)")
-                            .font(.headline)
-                    }
-                    Text("このスポットではスタンプを取得できません")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.9))
+        VStack(spacing: 8) {
+            if isWithinRange {
+                // ✅ 撮影可能エリア内（25m以内）
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                    Text("📍 \(spot.name)")
+                        .font(.headline)
                 }
+                Text("撮影可能エリア")
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.9))
+                    
+            } else {
+                // ⚠️ 範囲外
+                HStack(spacing: 6) {
+                    Image(systemName: "location.circle")
+                        .foregroundColor(.orange)
+                    Text("📍 \(spot.name)")
+                        .font(.headline)
+                }
+                Text("もう少し近づいてください (\(String(format: "%.0fm", distanceToSpot)))")
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.9))
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.black.opacity(0.75))
-            )
-            .padding(.bottom, 10)
         }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.black.opacity(0.75))
+        )
+        .padding(.bottom, 10)
     }
     
     @ViewBuilder
@@ -332,17 +390,11 @@ struct ARCameraView: View {
                 
                 Spacer()
                 
-                // シャッターボタン（ProximityDetectorの判定結果で色を変更）
-                // ⚠️ UUID型で比較
+                // シャッターボタン
                 Button(action: { snapshotTrigger.send() }) {
                     ZStack {
                         Circle()
-                            .strokeBorder(
-                                locationManager.isWithinCaptureRange && locationManager.currentNearestSpot?.id == spot.id
-                                    ? Color.green.opacity(0.8)  // 撮影可能: 緑
-                                    : Color.cyan.opacity(0.8),  // それ以外: シアン
-                                lineWidth: 4
-                            )
+                            .strokeBorder(Color.cyan.opacity(0.8), lineWidth: 4)
                             .frame(width: 80, height: 80)
                         Circle()
                             .fill(Color.white)
