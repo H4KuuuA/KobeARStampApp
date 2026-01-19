@@ -20,7 +20,7 @@ class MapViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private let locationManager = LocationManager.shared
     private var didSetCenter = false
-        
+    
     init() {
         locationManager.$latitude
             .combineLatest(locationManager.$longitude)
