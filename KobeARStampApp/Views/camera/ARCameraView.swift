@@ -222,11 +222,8 @@ struct ARCameraView: View {
             return
         }
         
-        // 1. スタンプカード用に内部保存
-        stampManager.addStamp(image: selectedImage, for: spot)
-        
-        // 2. デバイスのフォトライブラリに保存
-        photoSaver.saveImage(selectedImage)
+        // アプリディレクトリ + フォトライブラリの両方に保存
+        photoSaver.saveImage(selectedImage, for: spot)
     }
 
     // MARK: - UI Components
@@ -367,12 +364,9 @@ struct ARCameraView: View {
                 }) {
                     ZStack {
                         Circle()
-                            .strokeBorder(
-                                locationManager.isWithinCaptureRange && locationManager.currentNearestSpot?.id == spot.id
-                                    ? Color.green.opacity(0.8)  // 撮影可能: 緑
-                                    : Color.cyan.opacity(0.8),  // それ以外: シアン
-                                lineWidth: 4
-                            )
+                            .strokeBorder(Color.cyan.opacity(0.8), lineWidth: 4)
+                                                        .frame(width: 80, height: 80)
+                            
                             .frame(width: 80, height: 80)
                         Circle()
                             .fill(Color.white)

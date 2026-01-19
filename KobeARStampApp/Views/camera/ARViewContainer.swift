@@ -149,6 +149,7 @@ struct ARViewContainer: UIViewRepresentable {
                         guard self.lastPlacedAnchor == anchor else { return }
                         ghostEntity.removeFromParent()
                         anchor.addChild(loadedEntity)
+                        self.playAllAnimationsRecursively(from: loadedEntity)
                     }
                 } catch {
                     if Task.isCancelled { return }
@@ -166,6 +167,22 @@ struct ARViewContainer: UIViewRepresentable {
             }
         }
         
+        // 子孫を含めて全 ModelEntity のアニメーションを再生
+        private func playAllAnimationsRecursively(from root: Entity) {
+            if let model = root as? ModelEntity {
+                for animation in model.availableAnimations {
+                    // 代表的な呼び出し例。RealityKitのバージョンにより繰り返し指定APIが異なることがあります。
+                    let controller = model.playAnimation(animation, transitionDuration: 0.25, startsPaused: false)
+                    controller.speed = 1.0
+                    // 必要に応じてループ設定（環境に合わせて有効なものを使用してください）
+                    // 例: controller.repeat() / controller.repeats = .infinity / controller.setRepeatCount(...)
+                }
+            }
+            for child in root.children {
+                playAllAnimationsRecursively(from: child)
+            }
+        }
+
         func subscribeToActionStream() {
             snapshotTrigger
                 .sink { [weak self] in

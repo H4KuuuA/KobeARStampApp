@@ -12,8 +12,8 @@ import Combine
 class MapViewModel: ObservableObject {
     
     @Published var centerCoordinate = CLLocationCoordinate2D(
-        latitude: 34.70602173020105,
-        longitude: 135.2162279954511
+        latitude: 34.69973564179591,
+        longitude: 135.19311499645997
     )
     @Published var radiusInMeters: CLLocationDistance = 1500
     

@@ -9,7 +9,7 @@ struct SpotAnnotationView: View {
     @State private var isSelected: Bool = false
     @State private var animationType: AnimationType = .none
     @State private var showPulse: Bool = false
-    @State private var isInProximity: Bool = false  // エリア内かどうかを記録
+    @State private var isInProximity: Bool = false
     
     // アニメーションタイプを定義
     enum AnimationType {
@@ -42,7 +42,7 @@ struct SpotAnnotationView: View {
             .pulseEffect(
                 isActive: showPulse,
                 color: pinColor,
-                baseSize: size * 0.8,  // サイズを小さく調整
+                baseSize: size * 0.8,
                 duration: 1.5
             )
         }
@@ -69,7 +69,6 @@ struct SpotAnnotationView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .spotTapped)) { notification in
             if let tappedSpot = notification.object as? Spot {
-                // ⚠️ UUID型で比較
                 if tappedSpot.id == spot.id {
                     // 自分がタップされた場合
                     if isInProximity {
@@ -99,7 +98,6 @@ struct SpotAnnotationView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .spotProximityEntered)) { notification in
             if let enteredSpot = notification.object as? Spot {
-                // ⚠️ UUID型で比較
                 if enteredSpot.id == spot.id {
                     // エリア内フラグを立てる
                     isInProximity = true
@@ -117,9 +115,9 @@ struct SpotAnnotationView: View {
     }
     
     // MARK: - Spot Image View
+    
     @ViewBuilder
     private var spotImageView: some View {
-        // ⚠️ imageURL は計算プロパティ（Optional）
         if let imageURL = spot.imageURL {
             // 外部URLから画像を取得（ローカル画像をフォールバックとして表示）
             AsyncImage(url: imageURL) { phase in
@@ -132,11 +130,9 @@ struct SpotAnnotationView: View {
                     image
                         .resizable()
                         .scaledToFill()
-                        // ⚠️ ローカル画像に合わせて 0.8 に変更
                         .frame(width: size * 0.8, height: size * 0.8)
                         .clipShape(Circle())
                         .imageBorder(isSelected: isSelected)
-                        // ⚠️ ローカル画像に合わせて -0.05 に変更
                         .offset(y: -size * 0.05)
                         .scaleEffect(isSelected && animationType == .tap ? 1.3 : 1.0)
                     
@@ -175,7 +171,6 @@ struct SpotAnnotationView: View {
         ZStack {
             Circle()
                 .fill(Color.white)
-                // ⚠️ ローカル画像に合わせて 0.8 に変更
                 .frame(width: size * 0.8, height: size * 0.8)
                 .shadow(color: isSelected ? .gray.opacity(0.5) : .clear, radius: 4)
             
@@ -185,7 +180,6 @@ struct SpotAnnotationView: View {
                 .frame(width: size * 0.5, height: size * 0.5)
                 .foregroundColor(.gray)
         }
-        // ⚠️ ローカル画像に合わせて -0.05 に変更
         .offset(y: -size * 0.05)
         .scaleEffect(isSelected && animationType == .tap ? 1.3 : 1.0)
     }
