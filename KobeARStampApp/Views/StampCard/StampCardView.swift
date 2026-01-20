@@ -13,6 +13,7 @@ struct StampCardView: View {
     @State private var selectedEvent: Event?
     @State private var availableEvents: [Event] = []
     @State private var selectedSpot: Spot?
+    @State private var isUserSelectedEvent = false
     
     // 追加: プロフィール画像を取得
     @AppStorage("profileImageData") private var profileImageData: Data?
@@ -81,6 +82,14 @@ struct StampCardView: View {
         .task {
             await loadInitialData()
         }
+        .onAppear {
+            if !isUserSelectedEvent {
+                Task {
+                    await stampManager.fetchCurrentEvent()
+                    resetToCurrentEvent()
+                }
+            }
+        }
         .onChange(of: profileImageData) { oldValue, newValue in
             if let data = newValue, let image = UIImage(data: data) {
                 profileImage = image
@@ -89,7 +98,6 @@ struct StampCardView: View {
             }
         }
         .onChange(of: selectedEvent) { oldValue, newEvent in
-            // DetailViewを開いている場合は閉じる
             if selectedSpot != nil {
                 selectedSpot = nil
             }
@@ -98,6 +106,11 @@ struct StampCardView: View {
                 if let event = newEvent {
                     await stampManager.fetchSpots(for: event)
                 }
+            }
+        }
+        .onChange(of: stampManager.currentEvent) { oldValue, newValue in
+            if !isUserSelectedEvent {
+                resetToCurrentEvent()
             }
         }
     }
@@ -273,11 +286,20 @@ struct StampCardView: View {
         }
         
         await fetchAvailableEvents()
+        resetToCurrentEvent()
+    }
+    
+    private func resetToCurrentEvent() {
+        let currentEvent = stampManager.currentEvent
         
-        // 初期選択として現在開催中のイベントを設定
-        if selectedEvent == nil, let currentEvent = stampManager.currentEvent {
+        if selectedEvent?.id != currentEvent?.id {
             selectedEvent = currentEvent
-            await stampManager.fetchSpots(for: currentEvent)
+            
+            if let event = currentEvent {
+                Task {
+                    await stampManager.fetchSpots(for: event)
+                }
+            }
         }
     }
     
@@ -312,6 +334,7 @@ struct StampCardView: View {
         Menu {
             ForEach(availableEvents) { event in
                 Button(action: {
+                    isUserSelectedEvent = true
                     selectedEvent = event
                 }) {
                     HStack {
