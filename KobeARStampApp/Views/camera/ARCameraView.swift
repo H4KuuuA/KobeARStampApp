@@ -58,6 +58,9 @@ struct ARCameraView: View {
     @State private var arModel: ARModel? = nil
     @State private var isLoadingModel = false
     
+    // クリア画面の表示の条件
+    @State private var showClearCelebration = false
+    
     private let snapshotTrigger = PassthroughSubject<Void, Never>()
     
     // 成功したアセットのみを返す計算プロパティ
@@ -163,11 +166,22 @@ struct ARCameraView: View {
             guard let result = result else { return }
             switch result {
             case .success:
-                self.saveFeedbackMessage = "写真がフォトライブラリに保存されました!"
+                // ✅ 現在のイベント内の全スタンプ取得判定
+                if let event = stampManager.currentEvent,
+                   stampManager.currentEventAcquiredCount >= stampManager.currentEventSpotCount,
+                   stampManager.currentEventSpotCount > 0 {
+                    // イベントクリア画面を表示
+                    self.showClearCelebration = true
+                } else {
+                    // 通常の保存成功メッセージ
+                    self.saveFeedbackMessage = "写真がフォトライブラリに保存されました!"
+                    self.showSaveFeedbackAlert = true
+                }
+                
             case .failure:
                 self.saveFeedbackMessage = "写真の保存に失敗しました。設定アプリで写真へのアクセスを許可してください。"
+                self.showSaveFeedbackAlert = true
             }
-            self.showSaveFeedbackAlert = true
             photoSaver.saveResult = nil
         }
         .alert("写真の保存", isPresented: $showSaveFeedbackAlert) {
@@ -176,6 +190,17 @@ struct ARCameraView: View {
             }
         } message: {
             Text(saveFeedbackMessage)
+        }
+        .fullScreenCover(isPresented: $showClearCelebration) {
+
+            ClearCelebrationView(onDismiss: {
+
+                showClearCelebration = false
+
+                dismiss() // ARCameraViewも閉じてホーム画面に戻る
+
+            })
+
         }
     }
     
@@ -270,6 +295,10 @@ struct ARCameraView: View {
     // MARK: - Photo Selection Handler
     
     private func handlePhotoSelection(_ selectedImage: UIImage) {
+        print("🔵 handlePhotoSelection 呼ばれました")
+        
+        showPhotoSelectionSheet = false
+        
         // 位置情報チェック
         let validation = canCaptureStamp()
         
