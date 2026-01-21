@@ -8,10 +8,18 @@
 import SwiftUI
 import Combine
 import CoreLocation
+import AudioToolbox
 
 // 写真データを複数のViewで共有・監視するためのクラス
 class PhotoCollection: ObservableObject {
     @Published var assets: [PhotoAsset] = []
+}
+// システムの軽量シャッター音
+enum ShutterSound {
+    static func play() {
+        // よく使われるシャッター系ID（1108/1057 など）
+        AudioServicesPlaySystemSound(SystemSoundID(1108))
+    }
 }
 
 struct ARCameraView: View {
@@ -391,16 +399,21 @@ struct ARCameraView: View {
                 Spacer()
                 
                 // シャッターボタン
-                Button(action: { snapshotTrigger.send() }) {
-                    ZStack {
-                        Circle()
-                            .strokeBorder(Color.cyan.opacity(0.8), lineWidth: 4)
-                            .frame(width: 80, height: 80)
-                        Circle()
-                            .fill(Color.white)
-                            .frame(width: 68, height: 68)
-                    }
-                }
+                Button(action: {
+                                    ShutterSound.play()
+                                    snapshotTrigger.send()
+                                }) {
+                                    ZStack {
+                                        Circle()
+                                            .strokeBorder(Color.cyan.opacity(0.8), lineWidth: 4)
+                                                                        .frame(width: 80, height: 80)
+                                            
+                                            .frame(width: 80, height: 80)
+                                        Circle()
+                                            .fill(Color.white)
+                                            .frame(width: 68, height: 68)
+                                    }
+                                }
                 
                 Spacer()
                 

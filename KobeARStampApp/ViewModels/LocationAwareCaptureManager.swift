@@ -30,7 +30,7 @@ class LocationAwareCaptureManager: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     
     /// 撮影可能範囲（メートル）
-    private let captureRadius: CLLocationDistance = 25.0
+    private let captureRadius: CLLocationDistance
     
     // MARK: - Initialization
     
@@ -40,6 +40,7 @@ class LocationAwareCaptureManager: ObservableObject {
     ) {
         self.locationManager = locationManager
         self.proximityDetector = proximityDetector
+        self.captureRadius = proximityDetector.entryRadius
         
         setupLocationObserver()
     }
@@ -191,3 +192,4 @@ extension LocationAwareCaptureManager {
     }
 }
 #endif
+
