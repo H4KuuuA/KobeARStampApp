@@ -3,15 +3,14 @@
 <plist version="1.0">
 <dict>
     <key>NSCameraUsageDescription</key>
-    <string>ARスタンプラリー機能でカメラを使用します。</string>
-    <key>UIBackgroundModes</key>
-    <array>
-        <string>location</string>
-    </array>
-    <key>NSLocationWhenInUseUsageDescription</key>
-    <string>現在地を地図上に表示するために位置情報を使用します。</string>
-    <key>NSPhotoLibraryAddUsageDescription</key>
-    <string>撮影したARスタンプの写真をフォトライブラリに保存するために使用します。</string>
-    
+        <string>ARスタンプラリー機能でカメラを使用します。</string>
+        <key>UIBackgroundModes</key>
+        <array>
+            <string>location</string>
+        </array>
+        <key>NSLocationWhenInUseUsageDescription</key>
+        <string>現在地を地図上に表示するために位置情報を使用します。</string>
+        <key>NSPhotoLibraryAddUsageDescription</key>
+        <string>撮影したARスタンプの写真をフォトライブラリに保存するために使用します。</string>
 </dict>
 </plist>

@@ -73,6 +73,7 @@ class StampManager: ObservableObject {
         Task {
             await loadVisitsFromSupabase()
             await loadImageCache()
+            await fetchCurrentEvent()
         }
         
         setupAuthObserver()
@@ -253,10 +254,12 @@ class StampManager: ObservableObject {
                 if AuthManager.shared.isAuthenticated {
                     await loadSpotsFromDatabase()
                     await loadVisitsFromSupabase()
+                    await fetchCurrentEvent()
                 } else {
                     allSpots = Self.defaultSpots
                     acquiredSpotIds.removeAll()
                     imageCache.removeAll()
+                    currentEvent = nil
                 }
             }
         }
@@ -362,12 +365,26 @@ class StampManager: ObservableObject {
             decoder.dateDecodingStrategy = .iso8601
             
             let events = try decoder.decode([Event].self, from: response.data)
+            
+            let previousEvent = self.currentEvent
             self.currentEvent = events.first
-            print("✅ Current event: \(events.first?.name ?? "None")")
+            
+            if previousEvent?.id != self.currentEvent?.id {
+                print("🔄 Current event changed: \(self.currentEvent?.name ?? "None")")
+                
+                if let newEvent = self.currentEvent {
+                    await fetchSpots(for: newEvent)
+                } else {
+                    self.currentEventSpots = []
+                }
+            } else {
+                print("✅ Current event unchanged: \(self.currentEvent?.name ?? "None")")
+            }
             
         } catch {
             print("❌ Error fetching current event: \(error)")
             self.currentEvent = nil
+            self.currentEventSpots = []
         }
     }
     

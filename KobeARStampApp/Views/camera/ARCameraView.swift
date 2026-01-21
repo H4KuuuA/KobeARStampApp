@@ -157,7 +157,7 @@ struct ARCameraView: View {
             }
         }
         .sheet(isPresented: $showGuide) {
-            guideView()
+            CameraGuideView()
         }
         .onReceive(photoSaver.$saveResult) { result in
             guard let result = result else { return }
@@ -430,33 +430,6 @@ struct ARCameraView: View {
         .padding(.bottom, 10)
         .frame(maxWidth: .infinity)
         
-    }
-    
-    // 使い方ガイド
-    @ViewBuilder
-    private func guideView() -> some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Text("使い方ガイド")
-                .font(.title.bold())
-            
-            Text("1. スタンプポイントに近づく（25m以内）")
-            Text("2. 画面上部に「撮影可能エリア」と表示される")
-            Text("3. ARモデルを配置してシャッターボタンを押す")
-            Text("4. 写真を選択すると位置検証が行われます")
-            Text("5. スタンプが自動的に保存されます")
-            
-            Spacer()
-            
-            Button("閉じる") {
-                showGuide = false
-            }
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(Color.blue)
-            .foregroundColor(.white)
-            .cornerRadius(10)
-        }
-        .padding()
     }
 }
 
