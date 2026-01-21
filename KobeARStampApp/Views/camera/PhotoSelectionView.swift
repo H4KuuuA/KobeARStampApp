@@ -64,8 +64,9 @@ struct PhotoSelectionView: View {
                 Button(action: {
                     if let asset = assets.last {
                         onPhotoSelected(asset.image)
+                        isPresented = false  
                     }
-                }) {
+                }){
                     Text("この写真にする")
                         .font(.headline)
                         .fontWeight(.bold)
