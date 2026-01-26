@@ -26,14 +26,14 @@ struct InitialLoginView: View {
     // すべてのフィールドが入力されているか
     var isFormValid: Bool {
         return !email.isEmpty &&
-               !password.isEmpty &&
-               !confirmPassword.isEmpty &&
-               password == confirmPassword &&
-               password.count >= 6 &&
-               viewModel.selectedBirthDate != nil &&
-               !viewModel.selectedGender.isEmpty &&
-               !viewModel.selectedPrefecture.isEmpty &&
-               isValidEmail(email)
+        !password.isEmpty &&
+        !confirmPassword.isEmpty &&
+        password == confirmPassword &&
+        password.count >= 6 &&
+        viewModel.selectedBirthDate != nil &&
+        !viewModel.selectedGender.isEmpty &&
+        !viewModel.selectedPrefecture.isEmpty &&
+        isValidEmail(email)
     }
     
     var body: some View {
@@ -261,7 +261,14 @@ struct InitialLoginView: View {
                         }
                         .disabled(viewModel.isLoading || !isFormValid)
                         .padding(.horizontal, 24)
-                        .padding(.bottom, 120)
+                        .padding(.bottom, 48)
+                        Text("※本アプリは神戸エリアの観光実態把握のための実証実験として提供されています。ご入力いただいた属性情報（生年月日・都道府県等）は、統計分析のみに利用され、個人を特定する目的では使用されません。")
+                            .font(.caption2)
+                            .foregroundColor(.gray)
+                            .multilineTextAlignment(.center)
+                            .lineSpacing(4)
+                            .padding(.horizontal, 30)
+                            .padding(.bottom, 120)       
                     }
                 }
                 .scrollDismissesKeyboard(.interactively)

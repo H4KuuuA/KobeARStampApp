@@ -389,5 +389,5 @@ struct InfoRow: View {
 
 // MARK: - Preview
 #Preview {
-    SpotDetailSheetView(spot: Spot.testSpot)
+    
 }

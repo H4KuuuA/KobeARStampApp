@@ -125,7 +125,7 @@ struct Spot: Identifiable, Codable, Equatable, Hashable {
 
 // MARK: - Debug Extension
 
-#if DEBUG
+
 extension Spot {
     /// テスト用のサンプルスポット
     static let testSpot = Spot(
@@ -192,4 +192,4 @@ extension Spot {
         )
     ]
 }
-#endif
+

@@ -464,11 +464,5 @@ struct ARCameraView: View {
 
 #Preview {
 
-    let previewSpot = Spot.testSpot
     
-    ARCameraView(
-        spot: previewSpot,
-        activeTab: .constant(.home),
-        stampManager: StampManager.shared
-    )
 }

@@ -551,7 +551,7 @@ enum RepositoryError: LocalizedError {
 
 // MARK: - Debug Extension
 
-#if DEBUG
+
 extension DataRepository {
     /// テスト用：接続確認
     func testConnection() async -> Bool {
@@ -570,4 +570,4 @@ extension DataRepository {
         }
     }
 }
-#endif
+
