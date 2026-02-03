@@ -112,11 +112,12 @@ struct UserProfile: Codable {
     }
 }
 
-// MARK: - 認証用のリクエスト・レスポンスなど (以下変更なし)
+// MARK: - 認証用のリクエスト・レスポンスなど
+
 struct SignUpRequest {
     let email: String
     let password: String
-    let birthDate: Date
+    let birthDate: Date?      // 👈 オプショナルに変更
     let gender: Int
     let prefecture: String
 }

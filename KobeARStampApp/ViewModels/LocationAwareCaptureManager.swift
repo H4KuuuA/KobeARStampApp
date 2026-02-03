@@ -181,7 +181,7 @@ class LocationAwareCaptureManager: ObservableObject {
 
 // MARK: - Preview Helper
 
-#if DEBUG
+
 extension LocationAwareCaptureManager {
     /// プレビュー用の便利イニシャライザ
     static func preview() -> LocationAwareCaptureManager {
@@ -191,5 +191,5 @@ extension LocationAwareCaptureManager {
         return manager
     }
 }
-#endif
+
 

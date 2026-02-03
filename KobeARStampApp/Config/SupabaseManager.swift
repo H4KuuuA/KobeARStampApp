@@ -102,7 +102,7 @@ private struct SupabaseConfig {
 
 // MARK: - デバッグ用ヘルパー
 
-#if DEBUG
+
 extension SupabaseManager {
     /// 設定が正しく読み込まれているか確認
     static func validateConfig() -> Bool {
@@ -139,4 +139,4 @@ extension SupabaseManager {
         return true
     }
 }
-#endif
+

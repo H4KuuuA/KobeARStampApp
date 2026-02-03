@@ -196,9 +196,5 @@ extension View {
 }
 
 #Preview {
-    SpotAnnotationView(
-        spot: Spot.testSpot,
-        size: 96,
-        pinColorHex: "#FF0000"
-    )
+    
 }
