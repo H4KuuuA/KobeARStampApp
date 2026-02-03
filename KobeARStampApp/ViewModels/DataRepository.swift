@@ -36,6 +36,17 @@ class DataRepository {
         try await client.auth.signOut()
     }
     
+    /// アカウント削除（完全削除）
+    func deleteAccount() async throws {
+        // 1. まずサーバー側でアカウント削除
+        _ = try await client.rpc("delete_my_account").execute()
+        
+        // 2. その後ローカルセッションをクリア
+        try await client.auth.signOut()
+        
+        print("✅ アカウント完全削除成功")
+    }
+    
     /// 現在のユーザーを取得
     func getCurrentUser() async throws -> User? {
         return try await client.auth.session.user
@@ -570,4 +581,3 @@ extension DataRepository {
         }
     }
 }
-

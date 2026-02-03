@@ -281,11 +281,17 @@ struct SettingsView: View {
     
     // MARK: - Data Deletion Function
     private func performDataDeletion() {
-        profileImageData = nil
-        profileImage = nil
-        lastSyncDate = nil
-        
-        print("⚠️ データ削除処理（未実装）")
+        Task {
+            await authManager.deleteAccount()
+            
+            await MainActor.run {
+                profileImageData = nil
+                profileImage = nil
+                lastSyncDate = nil
+            }
+            
+            print("✅ アカウント削除完了 - LoginViewへ自動遷移")
+        }
     }
     
     // MARK: - Local Storage Methods

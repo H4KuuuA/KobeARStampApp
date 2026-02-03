@@ -100,4 +100,31 @@ class AuthManager: ObservableObject {
             print("❌ サインアウト失敗: \(error)")
         }
     }
+    
+    /// アカウント削除（完全削除：サーバー + ローカル）
+    @MainActor
+    func deleteAccount() async {
+        print("🗑️ アカウント削除開始...")
+        
+        // 1. ローカルデータを先に削除
+        print("📱 ローカルデータ削除中...")
+        LocalDataManager.shared.deleteAllLocalData()
+        
+        // 2. Supabaseからアカウント削除
+        print("☁️ サーバーデータ削除中...")
+        do {
+            try await DataRepository.shared.deleteAccount()
+            isAuthenticated = false
+            currentUser = nil
+            currentProfile = nil
+            
+            // 認証状態変更を通知
+            NotificationCenter.default.post(name: .authStateChanged, object: nil)
+            
+            print("✅ アカウント削除完了（ローカル + サーバー）")
+        } catch {
+            print("❌ サーバーデータ削除失敗: \(error)")
+            // エラーが発生してもローカルデータは削除済み
+        }
+    }
 }

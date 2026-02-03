@@ -2,7 +2,7 @@
 //  InitialLoginView.swift
 //  KobeARStampApp
 //
-//  Created by 大江悠都 on 2025/12/08.
+//  任意項目（生年月日・都道府県）のUI/UXを改善
 //
 
 import SwiftUI
@@ -19,21 +19,24 @@ struct InitialLoginView: View {
     @State private var showPrefecturePicker = false
     @FocusState private var focusedField: Field?
     
+    // 任意項目のスキップ設定
+    @State private var skipBirthDate = false
+    
     enum Field {
         case email, password, confirmPassword
     }
     
-    // すべてのフィールドが入力されているか
+    // すべての必須フィールドが入力されているか
     var isFormValid: Bool {
         return !email.isEmpty &&
-        !password.isEmpty &&
-        !confirmPassword.isEmpty &&
-        password == confirmPassword &&
-        password.count >= 6 &&
-        viewModel.selectedBirthDate != nil &&
-        !viewModel.selectedGender.isEmpty &&
-        !viewModel.selectedPrefecture.isEmpty &&
-        isValidEmail(email)
+               !password.isEmpty &&
+               !confirmPassword.isEmpty &&
+               password == confirmPassword &&
+               password.count >= 6 &&
+               !viewModel.selectedGender.isEmpty &&
+               // 生年月日は「回答しない」または「入力済み」ならOK
+               (skipBirthDate || viewModel.selectedBirthDate != nil) &&
+               isValidEmail(email)
     }
     
     var body: some View {
@@ -126,35 +129,70 @@ struct InitialLoginView: View {
                                 }
                             }
                             
-                            // 生年月日選択
+                            // 生年月日選択（任意・改善版）
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("生年月日")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
+                                HStack {
+                                    Text("生年月日")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                    
+                                    Text("（任意）")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
                                 
+                                // 「回答しない」チェックボックス（背景なし・小さめ）
                                 Button(action: {
-                                    focusedField = nil
-                                    hideAllPickers()
-                                    showBirthDatePicker = true
-                                }) {
-                                    HStack {
-                                        if let birthDate = viewModel.selectedBirthDate {
-                                            Text(formattedDate(birthDate))
-                                                .foregroundColor(.black)
-                                        }
-                                        Spacer()
-                                        Image(systemName: "chevron.down")
-                                            .foregroundColor(.secondary)
+                                    skipBirthDate.toggle()
+                                    if skipBirthDate {
+                                        viewModel.selectedBirthDate = nil
+                                        hideAllPickers()
                                     }
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 44)
-                                    .padding(.horizontal, 12)
-                                    .background(Color(.systemGray6))
-                                    .cornerRadius(10)
+                                }) {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: skipBirthDate ? "checkmark.square.fill" : "square")
+                                            .foregroundColor(skipBirthDate ? Color("DarkBlue") : .secondary)
+                                            .font(.system(size: 16))
+                                        
+                                        Text("回答しない")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                        
+                                        Spacer()
+                                    }
+                                    .padding(.leading, 4)
+                                }
+                                .disabled(false)
+                                
+                                // 日付選択ボタン（「回答しない」が未選択の場合のみ表示）
+                                if !skipBirthDate {
+                                    Button(action: {
+                                        focusedField = nil
+                                        hideAllPickers()
+                                        showBirthDatePicker = true
+                                    }) {
+                                        HStack {
+                                            if let birthDate = viewModel.selectedBirthDate {
+                                                Text(formattedDate(birthDate))
+                                                    .foregroundColor(.black)
+                                            } else {
+                                                Text("選択してください")
+                                                    .foregroundColor(.secondary)
+                                            }
+                                            Spacer()
+                                            Image(systemName: "calendar")
+                                                .foregroundColor(.secondary)
+                                        }
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 44)
+                                        .padding(.horizontal, 12)
+                                        .background(Color(.systemGray6))
+                                        .cornerRadius(10)
+                                    }
                                 }
                             }
                             
-                            // 性別選択
+                            // 性別選択（必須）
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("性別")
                                     .font(.subheadline)
@@ -166,8 +204,8 @@ struct InitialLoginView: View {
                                     showGenderPicker = true
                                 }) {
                                     HStack {
-                                        Text(viewModel.selectedGender.isEmpty ? "" : viewModel.selectedGender)
-                                            .foregroundColor(.black)
+                                        Text(viewModel.selectedGender.isEmpty ? "選択してください" : viewModel.selectedGender)
+                                            .foregroundColor(viewModel.selectedGender.isEmpty ? .secondary : .black)
                                         Spacer()
                                         Image(systemName: "chevron.down")
                                             .foregroundColor(.secondary)
@@ -180,11 +218,17 @@ struct InitialLoginView: View {
                                 }
                             }
                             
-                            // 都道府県選択
+                            // 都道府県選択（任意・元の実装のまま）
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("都道府県")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
+                                HStack {
+                                    Text("都道府県")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                    
+                                    Text("（任意）")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
                                 
                                 Button(action: {
                                     focusedField = nil
@@ -192,8 +236,8 @@ struct InitialLoginView: View {
                                     showPrefecturePicker = true
                                 }) {
                                     HStack {
-                                        Text(viewModel.selectedPrefecture.isEmpty ? "" : viewModel.selectedPrefecture)
-                                            .foregroundColor(.black)
+                                        Text(viewModel.selectedPrefecture.isEmpty ? "選択してください" : viewModel.selectedPrefecture)
+                                            .foregroundColor(viewModel.selectedPrefecture.isEmpty ? .secondary : .black)
                                         Spacer()
                                         Image(systemName: "chevron.down")
                                             .foregroundColor(.secondary)
@@ -222,27 +266,7 @@ struct InitialLoginView: View {
                         
                         // 登録ボタン
                         Button(action: {
-                            focusedField = nil
-                            hideAllPickers()
-                            
-                            guard let birthDate = viewModel.selectedBirthDate,
-                                  let gender = Gender.fromDisplayName(viewModel.selectedGender) else {
-                                return
-                            }
-                            
-                            let request = SignUpRequest(
-                                email: email,
-                                password: password,
-                                birthDate: birthDate,
-                                gender: gender.rawValue,
-                                prefecture: viewModel.selectedPrefecture
-                            )
-                            
-                            viewModel.signUp(request: request) { success in
-                                if success {
-                                    hasCompletedInitialSetup = true
-                                }
-                            }
+                            handleSignUp()
                         }) {
                             HStack {
                                 if viewModel.isLoading {
@@ -261,14 +285,7 @@ struct InitialLoginView: View {
                         }
                         .disabled(viewModel.isLoading || !isFormValid)
                         .padding(.horizontal, 24)
-                        .padding(.bottom, 48)
-                        Text("※本アプリは神戸エリアの観光実態把握のための実証実験として提供されています。ご入力いただいた属性情報（生年月日・都道府県等）は、統計分析のみに利用され、個人を特定する目的では使用されません。")
-                            .font(.caption2)
-                            .foregroundColor(.gray)
-                            .multilineTextAlignment(.center)
-                            .lineSpacing(4)
-                            .padding(.horizontal, 30)
-                            .padding(.bottom, 120)       
+                        .padding(.bottom, 120)
                     }
                 }
                 .scrollDismissesKeyboard(.interactively)
@@ -357,6 +374,36 @@ struct InitialLoginView: View {
         showBirthDatePicker = false
         showGenderPicker = false
         showPrefecturePicker = false
+    }
+    
+    private func handleSignUp() {
+        focusedField = nil
+        hideAllPickers()
+        
+        guard let gender = Gender.fromDisplayName(viewModel.selectedGender) else {
+            viewModel.errorMessage = "性別を選択してください"
+            return
+        }
+        
+        // 生年月日：「回答しない」が選択されている場合はnilを渡す
+        let birthDate = skipBirthDate ? nil : viewModel.selectedBirthDate
+        
+        // 都道府県：空文字列の場合は空文字列のまま
+        let prefecture = viewModel.selectedPrefecture
+        
+        let request = SignUpRequest(
+            email: email,
+            password: password,
+            birthDate: birthDate,
+            gender: gender.rawValue,
+            prefecture: prefecture
+        )
+        
+        viewModel.signUp(request: request) { success in
+            if success {
+                hasCompletedInitialSetup = true
+            }
+        }
     }
     
     private func isValidEmail(_ email: String) -> Bool {
